@@ -39,7 +39,8 @@ public:
 };
 
 llStack::llStack()
-:stackSize{0}
+:stackSize{0},
+top{nullptr}
 {}
 
 llStack::~llStack(){
@@ -99,11 +100,13 @@ void arrStack::push(int value){
         for (uint i = 0; i < capacity; i++){
             oldData[i] = data[i];
         }
-        capacity *= 2;
+        capacity += 1e3;
+        delete [] data;
         data = new int[capacity];
         for (uint i = 0; i < capacity/2; i++){
             data[i] = oldData[i];
         }
+        delete [] oldData;
     }
     data[position] = value;
     position++;
@@ -134,38 +137,38 @@ int arrStack::size(){
 }
 
 TEST(TestStack, NewStackIsEmpty) {
-    llStack s;
+    arrStack s;
     ASSERT_TRUE(s.isEmpty());
     ASSERT_EQ(s.size(), 0);
 }
 
 TEST(TestStack, OneElementStackHasSizeOne) {
-    llStack s;
+    arrStack s;
     s.push(93);
     ASSERT_EQ(s.size(), 1);
     ASSERT_FALSE(s.isEmpty());
 }
 
 TEST(TestStack, PopNPeekFromEmptyStack){
-    llStack s;
+    arrStack s;
     ASSERT_THROW(s.peek(), std::logic_error*);
     ASSERT_THROW(s.pop(), std::logic_error*);
 }
 
 TEST(TestStack, PushNPeek) {
-    llStack s;
+    arrStack s;
     s.push(34);
     ASSERT_EQ(s.peek(), 34);
 }
 
 TEST(TestStack, PushNPop) {
-    llStack s;
+    arrStack s;
     s.push(36);
     ASSERT_EQ(s.pop(), 36);
 }
 
 TEST(TestStack, PushNPop2){
-    llStack s;
+    arrStack s;
     s.push(287);
     s.push(91);
     ASSERT_EQ(s.size(), 2);
@@ -176,7 +179,7 @@ TEST(TestStack, PushNPop2){
 
 TEST(TestStack, PushNPopSequence){
     uint i = 1;
-    llStack s;
+    arrStack s;
     for (; i <= 1e6; i++){
         s.push(i);
     }
