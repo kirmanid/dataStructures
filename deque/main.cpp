@@ -1,6 +1,7 @@
 #include <iostream>
 #include <exception>
 #include <queue>
+#include <cstring>
 #include <functional>
 #include "gtest/gtest.h"
 
@@ -27,11 +28,13 @@ public:
     ~Deque();
 };
 
-int Deque::backIndex(){
+template <typename T>
+int Deque<T>::backIndex(){
     return (startIndex + length - 1) % capacity;
 }
 
-void Deque::pushFront(T x){
+template <typename T>
+void Deque<T>::pushFront(T x){
     if (length == capacity - 2){
         growSize();
     }
@@ -39,7 +42,8 @@ void Deque::pushFront(T x){
     length++;
 }
 
-void Deque::pushBack(T x){
+template <typename T>
+void Deque<T>::pushBack(T x){
     if (length == capacity - 2){
         growSize();
     }
@@ -47,7 +51,8 @@ void Deque::pushBack(T x){
     length++;
 }
 
-T Deque::popFront(){
+template <typename T>
+T Deque<T>::popFront(){
     if (length == 0){
         throw new std::logic_error("Popped from empty deque");
     }
@@ -56,7 +61,8 @@ T Deque::popFront(){
     return data[startIndex - 1];
 }
 
-T Deque::popBack(){
+template <typename T>
+T Deque<T>::popBack(){
     if (length == 0){
         throw new std::logic_error("Popped from empty deque");
     }
@@ -64,37 +70,44 @@ T Deque::popBack(){
     return data[startIndex + length];
 }
 
-T Deque::peekBack(){
+template <typename T>
+T Deque<T>::peekBack(){
     if (length == 0){
         throw new std::logic_error("Peeked from empty deque");
     }
     return data[startIndex + length - 1];
 }
 
-T Deque::peekFront(){
+template <typename T>
+T Deque<T>::peekFront(){
     if (length == 0){
         throw new std::logic_error("Peeked from empty deque");
     }
     return data[startIndex];
 }
 
-bool Deque::isEmpty(){
+template <typename T>
+bool Deque<T>::isEmpty(){
     return length == 0;
 }
 
-uint Deque::size(){
+template <typename T>
+uint Deque<T>::size(){
     return length;
 }
 
-void Deque::growSize(){
+template <typename T>
+void Deque<T>::growSize(){
     capacity += sizeIncrement;
-    new T newData [capacity];
-    std::memcpy(newData, data, sizeof(data));
+    T* newData = new T [capacity];
+    std::memcpy(newData, data, sizeof(T) * size());
     delete [] data;
     data = newData;
+    delete [] newData;
 }
 
-Deque::Deque()
+template <typename T>
+Deque<T>::Deque()
 : sizeIncrement{uint(1e3)},
 capacity{uint(1e3)},
 length{0},
@@ -103,20 +116,21 @@ startIndex{0}
     data = new T [capacity];
 }
 
-Deque::~Deque(){
+template <typename T>
+Deque<T>::~Deque(){
     delete [] data;
 }
 
 TEST(TestDeque, emptyDequeIsEmpty){
-    Deque d<int>;
+    Deque<int> d;
     ASSERT_TRUE(d.isEmpty());
-    ASSERT_EQ(d.size() == 0);
-    ASSERT_THROW(s.peekFront(), std::logic_error);
-    ASSERT_THROW(s.peekBack(), std::logic_error);
+    ASSERT_EQ(d.size(), 0);
+    ASSERT_THROW(d.peekFront(), std::logic_error);
+    ASSERT_THROW(d.peekBack(), std::logic_error);
 }
 
 TEST(TestDeque, dequeHandlesOneElement){
-    Deque d<int>;
+    Deque<int> d;
     int el = 34;
     d.pushBack(el);
     
@@ -134,26 +148,26 @@ TEST(TestDeque, dequeHandlesOneElement){
 TEST(TestDeque, doubleSidedIntegerPushNPop){
     uint i = 0;
     uint upTo = 1e6;
-    Deque d<int>;
+    Deque<int> d;
     while(i < upTo){
         i++;
-        d.pushBack(i);
+        d.pushBack(-i);
         d.pushFront(i);
     }
     i--;
     ASSERT_EQ(d.size() + 2, upTo * 2);
     while(i > 1){
         i--;
-        ASSERT_EQ(d.peekBack(), i);
+        ASSERT_EQ(d.peekBack(), -i);
         ASSERT_EQ(d.peekFront(), i);
-        ASSERT_EQ(d.popBack(), i);
+        ASSERT_EQ(d.popBack(), -i);
         ASSERT_EQ(d.popFront(), i);
     }
     
 }
 
 TEST(TestDeque, forwardInchworm){
-    Deque d<int>;
+    Deque<int> d;
     for (int i = 0; i < 10; i++){
         d.pushBack(i);
     }
@@ -168,7 +182,7 @@ TEST(TestDeque, forwardInchworm){
 }
 
 TEST(TestDeque, backwardInchworm){
-    Deque d<int>;
+    Deque<int> d;
     for (int i = 0; i < 10; i++){
         d.pushFront(i);
     }
