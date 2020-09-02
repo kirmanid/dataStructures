@@ -100,10 +100,10 @@ void arrStack::push(int value){
         for (uint i = 0; i < capacity; i++){
             oldData[i] = data[i];
         }
-        capacity += 1e3;
+        capacity *= 2;
         delete [] data;
         data = new int[capacity];
-        for (uint i = 0; i < capacity/2; i++){
+        for (uint i = 0; i < position; i++){
             data[i] = oldData[i];
         }
         delete [] oldData;
