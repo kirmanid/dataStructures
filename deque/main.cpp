@@ -8,11 +8,11 @@
 template <typename T>
 class Deque{
 private:
+    size_t sizeIncrement;
+    size_t capacity;
     T* data;
+    size_t length;
     int startIndex;
-    uint length;
-    uint capacity;
-    uint sizeIncrement;
 public:
     int backIndex();
     void pushFront(T x);
@@ -22,7 +22,7 @@ public:
     T peekFront();
     T peekBack();
     bool isEmpty();
-    uint size();
+    size_t size();
     void growSize();
     Deque();
     ~Deque();
@@ -35,19 +35,20 @@ int Deque<T>::backIndex(){
 
 template <typename T>
 void Deque<T>::pushFront(T x){
-    if (length == capacity - 2){
+    if (length == capacity - 1){
         growSize();
     }
-    data[(startIndex -1) % capacity] = x;
+    startIndex = (startIndex - 1 + capacity) % capacity;
+    data[startIndex] = x;
     length++;
 }
 
 template <typename T>
 void Deque<T>::pushBack(T x){
-    if (length == capacity - 2){
+    if (length == capacity - 1){
         growSize();
     }
-    data[(startIndex + length) % capacity] = x;
+    data[(startIndex + length + capacity) % capacity] = x;
     length++;
 }
 
@@ -58,7 +59,7 @@ T Deque<T>::popFront(){
     }
     length--;
     startIndex = (startIndex + 1) % capacity;
-    return data[startIndex - 1];
+    return data[(startIndex - 1 + capacity) % capacity];
 }
 
 template <typename T>
@@ -67,7 +68,7 @@ T Deque<T>::popBack(){
         throw new std::logic_error("Popped from empty deque");
     }
     length--;
-    return data[startIndex + length];
+    return data[(startIndex + length) % capacity];
 }
 
 template <typename T>
@@ -75,7 +76,7 @@ T Deque<T>::peekBack(){
     if (length == 0){
         throw new std::logic_error("Peeked from empty deque");
     }
-    return data[startIndex + length - 1];
+    return data[(startIndex + length - 1) % capacity];
 }
 
 template <typename T>
@@ -92,7 +93,7 @@ bool Deque<T>::isEmpty(){
 }
 
 template <typename T>
-uint Deque<T>::size(){
+size_t Deque<T>::size(){
     return length;
 }
 
@@ -100,21 +101,23 @@ template <typename T>
 void Deque<T>::growSize(){
     capacity += sizeIncrement;
     T* newData = new T [capacity];
-    std::memcpy(newData, data, sizeof(T) * size());
+//     std::memcpy(newData, data, sizeof data);
+    for (size_t i = 0; i < capacity; i++){
+        newData[i] = data[(startIndex + i) % capacity];
+    }
+    startIndex = 0;
     delete [] data;
     data = newData;
-    delete [] newData;
 }
 
 template <typename T>
 Deque<T>::Deque()
-: sizeIncrement{uint(1e3)},
-capacity{uint(1e3)},
-length{0},
-startIndex{0}
-{
-    data = new T [capacity];
-}
+    : sizeIncrement{size_t(1e3)},
+      capacity{sizeIncrement},
+      data{new T[capacity]},
+      length{0},
+      startIndex{0}
+{}
 
 template <typename T>
 Deque<T>::~Deque(){
@@ -125,8 +128,8 @@ TEST(TestDeque, emptyDequeIsEmpty){
     Deque<int> d;
     ASSERT_TRUE(d.isEmpty());
     ASSERT_EQ(d.size(), 0);
-    ASSERT_THROW(d.peekFront(), std::logic_error);
-    ASSERT_THROW(d.peekBack(), std::logic_error);
+    ASSERT_THROW(d.peekFront(), std::logic_error*);
+    ASSERT_THROW(d.peekBack(), std::logic_error*);
 }
 
 TEST(TestDeque, dequeHandlesOneElement){
@@ -145,23 +148,37 @@ TEST(TestDeque, dequeHandlesOneElement){
     
 }
 
+TEST(TestDeque, dequeActsLikeStack){
+    Deque<int> d;
+    size_t i = 1;
+    for (; i <= 2000; i++){
+        d.pushFront(i);
+    }
+    i--;
+    for (; i >= 1; i--){
+        ASSERT_EQ(d.popFront(), i);
+    }
+}
+
 TEST(TestDeque, doubleSidedIntegerPushNPop){
-    uint i = 0;
-    uint upTo = 1e6;
+    int i = 0;
+    size_t upTo = 1000;
     Deque<int> d;
     while(i < upTo){
         i++;
         d.pushBack(-i);
         d.pushFront(i);
     }
-    i--;
-    ASSERT_EQ(d.size() + 2, upTo * 2);
-    while(i > 1){
+    i++;
+    ASSERT_EQ(d.size(), upTo * 2);
+    while(i > 2){
         i--;
         ASSERT_EQ(d.peekBack(), -i);
         ASSERT_EQ(d.peekFront(), i);
         ASSERT_EQ(d.popBack(), -i);
         ASSERT_EQ(d.popFront(), i);
+//         std::cout << d.popBack() << "\n";
+//         std::cout << d.popFront() << "\n";
     }
     
 }
@@ -174,8 +191,8 @@ TEST(TestDeque, forwardInchworm){
     ASSERT_EQ(d.size(), 10);
     for (int i = 0; i < 1e5; i++){
         ASSERT_EQ(d.popFront(), i % 10);
-        ASSERT_EQ(d.peekFront(), (i + 1) % 10);
-        ASSERT_EQ(d.peekBack(), (i - 1) % 10);
+        ASSERT_EQ(d.peekFront(), (i + 11) % 10);
+        ASSERT_EQ(d.peekBack(), (i + 9) % 10);
         d.pushBack(i % 10);
         ASSERT_EQ(d.size(), 10);
     }
@@ -189,8 +206,8 @@ TEST(TestDeque, backwardInchworm){
     ASSERT_EQ(d.size(), 10);
     for (int i = 0; i < 1e5; i++){
         ASSERT_EQ(d.popBack(), i % 10);
-        ASSERT_EQ(d.peekBack(), (i + 1) % 10);
-        ASSERT_EQ(d.peekFront(), (i - 1) % 10);
+        ASSERT_EQ(d.peekBack(), (i + 11) % 10);
+        ASSERT_EQ(d.peekFront(), (i + 9) % 10);
         d.pushFront(i % 10);
         ASSERT_EQ(d.size(), 10);
     }
