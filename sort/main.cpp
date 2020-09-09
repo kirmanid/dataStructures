@@ -11,13 +11,10 @@ T* mergeSort(T* unsorted, size_t length){
     if (length <= 1){
         return unsorted;
     }
-    size_t aIndex, bIndex, aSize, bSize = 0;
-    aSize = length/2;
-    bSize = length - aSize;
+    size_t aSize = length/2;
+    size_t bSize = length - aSize;
     T pileA[aSize];
     T pileB[bSize];
-    T sorted[aSize + bSize];
-    
     
     for(size_t i = 0; i < length; i++){
         if (i < aSize){
@@ -26,25 +23,29 @@ T* mergeSort(T* unsorted, size_t length){
             pileB[i - aSize] = unsorted[i];
         }
     }
-    pileA = mergeSort(pileA, aSize);
-    pileB = mergeSort(pileB, bSize);
+    T* sortedPileA = mergeSort(pileA, aSize);
+    T* sortedPileB = mergeSort(pileB, bSize);
     
-    
+    size_t aIndex = 0;
+    size_t bIndex = 0;
+    T* sorted =  new T[aSize + bSize];
     while (aIndex + bIndex < aSize + bSize - 2){
-        if (pileA[aIndex] > pileB[bIndex]){
-            sorted[aIndex + bIndex] = pileA[aIndex];
+        if (sortedPileA[aIndex] > sortedPileB[bIndex]){
+            sorted[aIndex + bIndex] = sortedPileA[aIndex];
             aIndex++;
         } else {
-            sorted[aIndex + bIndex] = pileB[bIndex];
+            sorted[aIndex + bIndex] = sortedPileB[bIndex];
             bIndex++;
         }
         if (bIndex == bSize){
-            sorted[aIndex + bIndex] = pileA[aIndex];
+            sorted[aIndex + bIndex] = sortedPileA[aIndex];
         }
         if (aIndex == aSize){
-            sorted[aIndex + bIndex] = pileB[bIndex];
+            sorted[aIndex + bIndex] = sortedPileB[bIndex];
         }
     }
+    delete [] sortedPileA;
+    delete [] sortedPileB;
     return sorted;
 }   
 
