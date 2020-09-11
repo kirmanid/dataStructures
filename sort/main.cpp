@@ -70,45 +70,73 @@ void mergeSort(std::vector<T>& values){
     
     for(size_t i = 0; i < length; i++){
         if (i < aSize){
-            pileA.push_back(values.front());
+            pileA.push_back(values[i]);
         } else {
-            pileB.push_back(values.front());
+            pileB.push_back(values[i]);
         }
-        values.erase(values.begin());
     }
         
     mergeSort(pileA);
     mergeSort(pileB);
     
-    std::vector<T>* sorted = new std::vector<T>;
+    std::vector<T> sorted;
     
     size_t aIndex = 0;
     size_t bIndex = 0;
     while (aIndex + bIndex < aSize + bSize){
         if (bIndex == bSize){
-            sorted->push_back(pileA.front());
-            pileA.erase(pileA.begin());
+            sorted.push_back(pileA[aIndex]);
             aIndex++;
             continue;
         }
         if (aIndex == aSize){
-            sorted->push_back(pileB.front());
-            pileB.erase(pileB.begin());
+            sorted.push_back(pileB[bIndex]);
             bIndex++;
             continue;
         }
-        if (pileA.front() < pileB.front()){
-            sorted->push_back(pileA.front());
-            pileA.erase(pileA.begin());
+        if (pileA[aIndex] < pileB[bIndex]){
+            sorted.push_back(pileA[aIndex]);
             aIndex++;
         } else {
-            sorted->push_back(pileB.front());
-            pileB.erase(pileB.begin());
+            sorted.push_back(pileB[bIndex]);
             bIndex++;
         }
     }
-    values = *sorted;
-    delete sorted; 
+    values = sorted;
+}
+
+template <typename T>
+void quickSort(std::vector<T>& values){
+    size_t length = values.size();
+    if (length <= 1){
+        return;
+    }
+    std::vector<T> pileA;
+    std::vector<T> pileB;
+    T pivot = values[length/2];
+    
+    for(size_t i = 0; i < length; i++){
+        if (i == length/2){
+            continue;
+        }
+        if (values[i] < pivot){
+            pileA.push_back(values[i]);
+        } else {
+            pileB.push_back(values[i]);
+        }
+    }
+        
+    quickSort(pileA);
+    quickSort(pileB);
+    std::vector<T> sorted;
+    for (size_t i = 0; i < pileA.size(); i++){
+        sorted.push_back(pileA[i]);
+    }
+    sorted.push_back(pivot);
+    for (size_t i = 0; i < pileB.size(); i++){
+        sorted.push_back(pileB[i]);
+    }
+    values = sorted;
 }
 
 template<typename T>
@@ -119,7 +147,7 @@ bool sortAndCheckN(size_t n){
     for (size_t i = 0; i < n; i++){
         vector.push_back(T(rand()));
     }
-    mergeSort<T>(vector); // assumes sort in place, ascending order
+    quickSort<T>(vector); // assumes sort in place, ascending order
     bool sorted = true;
     for (size_t i = 1; i < n; i++){
         if (vector[i-1] > vector[i]){
@@ -138,7 +166,7 @@ TEST(TestSort, twoElements){
 }
 
 TEST(TestSort, manyElements){
-    ASSERT_TRUE(sortAndCheckN<int>(1e5));
+    ASSERT_TRUE(sortAndCheckN<int>(2e5));
 }
 
 int main(int argc, char **argv) {
