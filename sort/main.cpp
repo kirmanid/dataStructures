@@ -65,14 +65,14 @@ void mergeSort(std::vector<T>& values){
     }
     size_t aSize = length/2;
     size_t bSize = length - aSize;
-    std::vector<T> pileA;
-    std::vector<T> pileB;
+    std::vector<T> pileA(aSize);
+    std::vector<T> pileB(bSize);
     
     for(size_t i = 0; i < length; i++){
         if (i < aSize){
-            pileA.push_back(values[i]);
+            pileA[i] = values[i];
         } else {
-            pileB.push_back(values[i]);
+            pileB[i - aSize] = values[i];
         }
     }
         
@@ -83,26 +83,26 @@ void mergeSort(std::vector<T>& values){
     
     size_t aIndex = 0;
     size_t bIndex = 0;
+    size_t j = 0;
     while (aIndex + bIndex < aSize + bSize){
         if (bIndex == bSize){
-            sorted.push_back(pileA[aIndex]);
+            values[j++] = pileA[aIndex];
             aIndex++;
             continue;
         }
         if (aIndex == aSize){
-            sorted.push_back(pileB[bIndex]);
+            values[j++] = pileB[bIndex];
             bIndex++;
             continue;
         }
         if (pileA[aIndex] < pileB[bIndex]){
-            sorted.push_back(pileA[aIndex]);
+            values[j++] = pileA[aIndex];
             aIndex++;
         } else {
-            sorted.push_back(pileB[bIndex]);
+            values[j++] = pileB[bIndex];
             bIndex++;
         }
     }
-    values = sorted;
 }
 
 template <typename T>
@@ -128,26 +128,24 @@ void quickSort(std::vector<T>& values){
         
     quickSort(pileA);
     quickSort(pileB);
-    std::vector<T> sorted;
     for (size_t i = 0; i < pileA.size(); i++){
-        sorted.push_back(pileA[i]);
+        values[i] = pileA[i];
     }
-    sorted.push_back(pivot);
+    values[pileA.size()] = pivot;
     for (size_t i = 0; i < pileB.size(); i++){
-        sorted.push_back(pileB[i]);
+        values[i + pileA.size() + 1] = pileB[i];
     }
-    values = sorted;
 }
 
 template<typename T>
 bool sortAndCheckN(size_t n){
     void* seed;
     srand(size_t(seed));
-    std::vector<T> vector;
+    std::vector<T> vector(n);
     for (size_t i = 0; i < n; i++){
-        vector.push_back(T(rand()));
+        vector[i] = T(rand());
     }
-    quickSort<T>(vector); // assumes sort in place, ascending order
+    mergeSort<T>(vector); // assumes sort in place, ascending order
     bool sorted = true;
     for (size_t i = 1; i < n; i++){
         if (vector[i-1] > vector[i]){
