@@ -1,5 +1,6 @@
 #include <iostream>
 #include <exception>
+#include <algorithm>
 #include <queue>
 #include <cstring>
 #include <functional>
@@ -263,6 +264,23 @@ BSTree<int> makeSixElementTree(){
     return tree;
 }
 
+template<typename T>
+void assertIncludesAll(BSTree<T>& tree, vector<T> values){
+    for (T element : values){
+        ASSERT_TRUE(tree.includes(element));
+    }
+}
+
+template<typename T>
+void assertIncludesExactly(BSTree<T>& tree, vector<T> values){
+    vector<T> traversed = tree.postOrder();
+    std::sort(values.begin(), values.end());
+    std::sort(traversed.begin(), traversed.end());
+    for (int i = 0; i < values.size(); i++){
+        ASSERT_EQ(values[i], traversed[i]);
+    }
+}
+
 TEST(TestTree, removeLeaf){
     BSTree<int> tree = makeSixElementTree();
     ASSERT_TRUE(tree.includes(2));
@@ -270,7 +288,10 @@ TEST(TestTree, removeLeaf){
     tree.remove(2);
     ASSERT_FALSE(tree.includes(2));
     ASSERT_EQ(tree.size(), 5);
-    // ordering tests here? (Also for all other remove tests)
+    
+    vector<int> remainingVals = {8,5,10,9,7};
+    assertIncludesAll(tree, remainingVals);
+    assertIncludesExactly(tree, remainingVals);
 }
 
 TEST(TestTree, removeParentOneChild){
@@ -280,6 +301,10 @@ TEST(TestTree, removeParentOneChild){
     tree.remove(10);
     ASSERT_FALSE(tree.includes(10));
     ASSERT_EQ(tree.size(), 5);
+    
+    vector<int> remainingVals = {8,5,2,9,7};
+    assertIncludesAll(tree, remainingVals);
+    assertIncludesExactly(tree, remainingVals);
 }
 
 TEST(TestTree, removeParentTwoChildren){
@@ -289,6 +314,10 @@ TEST(TestTree, removeParentTwoChildren){
     tree.remove(5);
     ASSERT_FALSE(tree.includes(5));
     ASSERT_EQ(tree.size(), 5);
+    
+    vector<int> remainingVals = {8,2,10,9,7};
+    assertIncludesAll(tree, remainingVals);
+    assertIncludesExactly(tree, remainingVals);
 }
 
 TEST(TestTree, removeRoot){
@@ -298,6 +327,10 @@ TEST(TestTree, removeRoot){
     tree.remove(8);
     ASSERT_FALSE(tree.includes(8));
     ASSERT_EQ(tree.size(), 5);
+    
+    vector<int> remainingVals = {5,2,10,9,7};
+    assertIncludesAll(tree, remainingVals);
+    assertIncludesExactly(tree, remainingVals);
 }
 
 TEST(TestTree, postOrderBasic){
