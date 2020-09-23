@@ -72,7 +72,7 @@ void BSTNode<T>::inOrder(vector<T>& values) const {
 template<typename T>
 vector<T> BSTree<T>::preOrder() const {
     vector<T> ordered;
-    if (size == 0){
+    if (treeSize == 0){
         return ordered;
     }
     root->preOrder(ordered);
@@ -82,7 +82,7 @@ vector<T> BSTree<T>::preOrder() const {
 template<typename T>
 vector<T> BSTree<T>::inOrder() const {
     vector<T> ordered;
-    if (size == 0){
+    if (treeSize == 0){
         return ordered;
     }
     root->inOrder(ordered);
@@ -126,7 +126,7 @@ void BSTNode<T>::postOrder(vector<T>& values) const {
 template<typename T>
 vector<T> BSTree<T>::postOrder() const {
     vector<T> ordered;
-    if (size == 0){
+    if (treeSize == 0){
         return ordered;
     }
     root->postOrder(ordered);
@@ -177,6 +177,7 @@ void BSTree<T>::remove(T value){
     if (children == 0){
         delete toRemove;
         if (currentParent == nullptr){
+            root = nullptr;
             return;
         }
         if (currentParent->left == toRemove){
@@ -191,7 +192,9 @@ void BSTree<T>::remove(T value){
         } else {
             child = toRemove->right;
         }
+        delete toRemove;
         if (currentParent == nullptr){
+            root = child;
             return;
         }
         if (currentParent->left->data == value){
@@ -200,7 +203,6 @@ void BSTree<T>::remove(T value){
         else {
             currentParent->right = child;
         }
-        delete toRemove;
     } else if (children == 2) {
         BSTNode<T>* nextNode = toRemove->right;
         BSTNode<T>* nextNodeParent = toRemove;
@@ -284,6 +286,18 @@ TEST(TestTree, removeRoot){
     vector<int> remainingVals = {5,2,10,9,7};
     assertIncludesAll(tree, remainingVals);
     assertIncludesExactly(tree, remainingVals);
+}
+
+TEST(TestTree, addRemoveThree){
+    BSTree<int> tree;
+    tree.insert(1);
+    tree.insert(3);
+    tree.insert(4);
+    
+
+    tree.remove(1);
+    tree.remove(3);
+    tree.remove(4);
 }
 
 TEST(TestTree, oneElement){
