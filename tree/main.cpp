@@ -72,6 +72,9 @@ void BSTNode<T>::inOrder(vector<T>& values) const {
 template<typename T>
 vector<T> BSTree<T>::preOrder() const {
     vector<T> ordered;
+    if (size == 0){
+        return ordered;
+    }
     root->preOrder(ordered);
     return ordered;
 }
@@ -79,6 +82,9 @@ vector<T> BSTree<T>::preOrder() const {
 template<typename T>
 vector<T> BSTree<T>::inOrder() const {
     vector<T> ordered;
+    if (size == 0){
+        return ordered;
+    }
     root->inOrder(ordered);
     return ordered;
 }
@@ -120,6 +126,9 @@ void BSTNode<T>::postOrder(vector<T>& values) const {
 template<typename T>
 vector<T> BSTree<T>::postOrder() const {
     vector<T> ordered;
+    if (size == 0){
+        return ordered;
+    }
     root->postOrder(ordered);
     return ordered;
 }
