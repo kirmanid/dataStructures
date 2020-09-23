@@ -11,9 +11,9 @@ using namespace std;
 template<typename T>
 class BSTNode{
 public:
-    BSTNode<T>* left;
-    BSTNode<T>* right;
-    T data;
+    BSTNode<T>* left{nullptr};
+    BSTNode<T>* right{nullptr};
+    T data{};
     void postOrder(vector<T>& values) const;
     void preOrder(vector<T>& values) const;
     void inOrder(vector<T>& values) const;
@@ -22,8 +22,8 @@ public:
 template<typename T>
 class BSTNodeAndParent{
 public:
-    BSTNode<T>* node;
-    BSTNode<T>* parent;
+    BSTNode<T>* node{nullptr};
+    BSTNode<T>* parent{nullptr};
 };
 
 template<typename T>
@@ -119,6 +119,9 @@ vector<T> BSTree<T>::postOrder() const {
 template<typename T>
 BSTNodeAndParent<T> BSTree<T>::searchSubtree(T value, BSTNode<T>* root, BSTNode<T>* parent, bool returnLeaf){
     BSTNodeAndParent<T> nodeNParent;
+    if (root == nullptr || treeSize == 0){
+        return nodeNParent;
+    }
     nodeNParent.parent = parent;
     if(root->data == value){
         nodeNParent.node = root;
@@ -140,7 +143,7 @@ BSTNodeAndParent<T> BSTree<T>::searchSubtree(T value, BSTNode<T>* root, BSTNode<
 
 template<typename T>
 void BSTree<T>::remove(T value){
-    BSTNodeAndParent<T> removeAndParent = searchSubtree(value, root, root, false);
+    BSTNodeAndParent<T> removeAndParent = searchSubtree(value, root, nullptr, false);
     BSTNode<T>* toRemove = removeAndParent.node;
     BSTNode<T>* currentParent = removeAndParent.parent;
     if (toRemove == nullptr){
@@ -156,6 +159,9 @@ void BSTree<T>::remove(T value){
     }
     if (children == 0){
         delete toRemove;
+        if (currentParent == nullptr){
+            return;
+        }
         if (currentParent->left == toRemove){
             currentParent-> left = nullptr;
         } else {
@@ -168,7 +174,9 @@ void BSTree<T>::remove(T value){
         } else {
             child = toRemove->right;
         }
-        
+        if (currentParent == nullptr){
+            return;
+        }
         if (currentParent->left->data == value){
             currentParent->left = child;
         }
@@ -195,23 +203,70 @@ void BSTree<T>::remove(T value){
 
 template<typename T>
 bool BSTree<T>::includes(T value){
-    return (searchSubtree(value, root, root, false).node != nullptr);
+    return (searchSubtree(value, root, nullptr, false).node != nullptr);
 }
 
 template<typename T>
 void BSTree<T>::insert(T value){
+    BSTNode<T>* newLeaf = new BSTNode<T>;
     treeSize++;
     if (root == nullptr){
-        root = new BSTNode<T>;
+        newLeaf->data = value;
+        root = newLeaf;
+        return;
+    } else if (includes(value)){
+        treeSize--;
+        return;
     }
-    BSTNode<T>* leaf = searchSubtree(value, root, root, true).node;
-    BSTNode<T>* newLeaf = new BSTNode<T>;
+    BSTNode<T>* leaf = searchSubtree(value, root, nullptr, true).node;
     newLeaf->data = value;
     if (value > leaf->data){
         leaf->right = newLeaf;
     } else {
         leaf->left = newLeaf;
     }
+}
+
+template<typename T>
+void assertIncludesAll(BSTree<T>& tree, vector<T> values){
+    for (T element : values){
+        ASSERT_TRUE(tree.includes(element));
+    }
+}
+
+template<typename T>
+void assertIncludesExactly(BSTree<T>& tree, vector<T> values){
+    vector<T> traversed = tree.postOrder();
+    std::sort(values.begin(), values.end());
+    std::sort(traversed.begin(), traversed.end());
+    for (int i = 0; i < values.size(); i++){
+        ASSERT_EQ(values[i], traversed[i]);
+    }
+}
+
+BSTree<int> makeSixElementTree(){
+    BSTree<int> tree;
+    tree.insert(8);
+    tree.insert(5);
+    tree.insert(10);
+    tree.insert(9);
+    tree.insert(7);
+    tree.insert(2);
+
+    return tree;
+}
+
+TEST(TestTree, removeRoot){
+    BSTree<int> tree = makeSixElementTree();
+    ASSERT_TRUE(tree.includes(8));
+    ASSERT_EQ(tree.size(), 6);
+    tree.remove(8);
+    ASSERT_FALSE(tree.includes(8));
+    ASSERT_EQ(tree.size(), 5);
+
+    vector<int> remainingVals = {5,2,10,9,7};
+    assertIncludesAll(tree, remainingVals);
+    assertIncludesExactly(tree, remainingVals);
 }
 
 TEST(TestTree, oneElement){
@@ -250,35 +305,6 @@ TEST(TestTree, removeWorksBasic){
     ASSERT_FALSE(tree.includes(7));
     tree.remove(9);
     ASSERT_FALSE(tree.includes(9));
-}
-
-BSTree<int> makeSixElementTree(){
-    BSTree<int> tree;
-    tree.insert(8);
-    tree.insert(5);
-    tree.insert(10);
-    tree.insert(9);
-    tree.insert(7);
-    tree.insert(2);
-    
-    return tree;
-}
-
-template<typename T>
-void assertIncludesAll(BSTree<T>& tree, vector<T> values){
-    for (T element : values){
-        ASSERT_TRUE(tree.includes(element));
-    }
-}
-
-template<typename T>
-void assertIncludesExactly(BSTree<T>& tree, vector<T> values){
-    vector<T> traversed = tree.postOrder();
-    std::sort(values.begin(), values.end());
-    std::sort(traversed.begin(), traversed.end());
-    for (int i = 0; i < values.size(); i++){
-        ASSERT_EQ(values[i], traversed[i]);
-    }
 }
 
 TEST(TestTree, removeLeaf){
@@ -320,28 +346,15 @@ TEST(TestTree, removeParentTwoChildren){
     assertIncludesExactly(tree, remainingVals);
 }
 
-TEST(TestTree, removeRoot){
-    BSTree<int> tree = makeSixElementTree();
-    ASSERT_TRUE(tree.includes(8));
-    ASSERT_EQ(tree.size(), 8);
-    tree.remove(8);
-    ASSERT_FALSE(tree.includes(8));
-    ASSERT_EQ(tree.size(), 5);
-    
-    vector<int> remainingVals = {5,2,10,9,7};
-    assertIncludesAll(tree, remainingVals);
-    assertIncludesExactly(tree, remainingVals);
-}
-
 TEST(TestTree, postOrderBasic){
     BSTree<int> tree = makeSixElementTree();
-    vector<int> sorted = {8,5,2,7,10,9};
+    vector<int> sorted = {2,7,5,9,10,8};
     ASSERT_EQ(tree.postOrder(), sorted);
 }
 
 TEST(TestTree, preOrderBasic){
     BSTree<int> tree = makeSixElementTree();
-    vector<int> sorted = {2,7,5,9,10,8};
+    vector<int> sorted = {8,5,2,7,10,9};
     ASSERT_EQ(tree.preOrder(), sorted);
 }
 
