@@ -33,7 +33,7 @@ private:
     int treeSize;
 public:
    BSTree();
-//    ~BSTree();
+   ~BSTree();
    bool includes(T value);
    void insert(T value);
    void remove(T value);
@@ -87,6 +87,14 @@ template<typename T>
 BSTree<T>::BSTree()
 :root{nullptr},
 treeSize{0}{}
+
+template<typename T>
+BSTree<T>::~BSTree(){
+    vector<T> elements = inOrder();
+    for (T element : elements){
+        remove(element);
+    }
+}
 
 template<typename T>
 int BSTree<T>::size() const {
@@ -305,6 +313,9 @@ TEST(TestTree, removeWorksBasic){
     ASSERT_FALSE(tree.includes(7));
     tree.remove(9);
     ASSERT_FALSE(tree.includes(9));
+    
+    tree.insert(3);
+    ASSERT_TRUE(tree.includes(3));
 }
 
 TEST(TestTree, removeLeaf){
