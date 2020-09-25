@@ -198,8 +198,9 @@ void BSTree<T>::remove(T value){
             child = toRemove->right;
             toRemove->right = nullptr;
         }
-        toRemove-> data = child->data;
-        delete child;
+        T keepVal = child->data;
+        remove(keepVal);
+        toRemove-> data = keepVal;
     } else if (children == 2) {
         BSTNode<T>* nextNode = toRemove->right;
         BSTNode<T>* nextNodeParent = toRemove;
