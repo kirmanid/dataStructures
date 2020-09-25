@@ -11,6 +11,7 @@ using namespace std;
 template<typename T>
 class BSTNode{
 public:
+    ~BSTNode();
     BSTNode<T>* left{nullptr};
     BSTNode<T>* right{nullptr};
     T data{};
@@ -46,6 +47,10 @@ private:
     BSTNodeAndParent<T> searchSubtree(T value, BSTNode<T>* root, BSTNode<T>* parent, bool returnLeaf);
 };
 
+template<typename T>
+BSTNode<T>::~BSTNode(){
+    data = -1;
+}
 
 template<typename T>
 void BSTNode<T>::preOrder(vector<T>& values) const {
@@ -136,10 +141,10 @@ vector<T> BSTree<T>::postOrder() const {
 template<typename T>
 BSTNodeAndParent<T> BSTree<T>::searchSubtree(T value, BSTNode<T>* root, BSTNode<T>* parent, bool returnLeaf){
     BSTNodeAndParent<T> nodeNParent;
+    nodeNParent.parent = parent;
     if (root == nullptr || treeSize == 0){
         return nodeNParent;
     }
-    nodeNParent.parent = parent;
     if(root->data == value){
         nodeNParent.node = root;
         return nodeNParent;
@@ -154,7 +159,6 @@ BSTNodeAndParent<T> BSTree<T>::searchSubtree(T value, BSTNode<T>* root, BSTNode<
         nodeNParent.node = root;
         return nodeNParent;
     }
-    nodeNParent.node = nullptr;
     return nodeNParent;
 }
 
@@ -189,20 +193,13 @@ void BSTree<T>::remove(T value){
         BSTNode<T>* child;
         if (toRemove->left != nullptr){
             child = toRemove->left;
+            toRemove->left = nullptr;
         } else {
             child = toRemove->right;
+            toRemove->right = nullptr;
         }
-        delete toRemove;
-        if (currentParent == nullptr){
-            root = child;
-            return;
-        }
-        if (currentParent->left->data == value){
-            currentParent->left = child;
-        }
-        else {
-            currentParent->right = child;
-        }
+        toRemove-> data = child->data;
+        delete child;
     } else if (children == 2) {
         BSTNode<T>* nextNode = toRemove->right;
         BSTNode<T>* nextNodeParent = toRemove;
@@ -234,6 +231,7 @@ void BSTree<T>::insert(T value){
         root = newLeaf;
         return;
     } else if (includes(value)){
+        delete newLeaf;
         treeSize--;
         return;
     }
@@ -288,16 +286,12 @@ TEST(TestTree, removeRoot){
     assertIncludesExactly(tree, remainingVals);
 }
 
-TEST(TestTree, addRemoveThree){
+TEST(TestTree, insertFour){
     BSTree<int> tree;
-    tree.insert(1);
     tree.insert(3);
-    tree.insert(4);
-    
-
-    tree.remove(1);
-    tree.remove(3);
-    tree.remove(4);
+    tree.insert(1);
+    tree.insert(2);
+    tree.insert(4); 
 }
 
 TEST(TestTree, oneElement){
