@@ -213,13 +213,13 @@ void BSTree<T>::remove(T value){
             nextNodeParent = nextNode;
             nextNode = nextNode->left;
         }
-        toRemove->data = nextNode->data;
-        if (nextNodeParent->left == nextNode){
-            nextNodeParent->left = nullptr;
-        } else {
-            nextNodeParent->right = nullptr;
-        }
-        delete nextNode;
+        T keepVal = nextNode->data;
+        BSTNode<T>* keepRoot = root;
+        root = nextNodeParent;
+        remove(keepVal);
+        root = keepRoot;
+        toRemove->data = keepVal;
+        treeSize++;
     }
 }
 
@@ -264,6 +264,20 @@ void assertIncludesExactly(BSTree<T>& tree, vector<T> values){
     std::sort(traversed.begin(), traversed.end());
     for (int i = 0; i < values.size(); i++){
         ASSERT_EQ(values[i], traversed[i]);
+    }
+}
+
+template<typename T>
+void insertVector(BSTree<T>& tree, vector<T> values){
+    for (T value : values){
+        tree.insert(value);
+    }
+}
+
+template<typename T>
+void removeVector(BSTree<T>& tree, vector<T> values){
+    for (T value : values){
+        tree.remove(value);
     }
 }
 
@@ -316,6 +330,16 @@ TEST(TestTree, breaker){
     tree.remove(1);
     
     assertIncludesExactly(tree , vector<int>{3,4});
+}
+
+
+TEST(TestTree, randomBreaker2){
+    BSTree<int> tree;
+    insertVector(tree, vector<int>{3, 25, 26, 26, 20, 17, 27, 5, 9, 23, 23, 29, 28, 13, 30, 7, 23, 25, 7, 2, 7, 8, 29, 28, 21, 29, 8, 17, 12, 20, 5, 27, 29, 12, 19, 26, 29, 28, 17, 11, 10, 6, 27, 16, 20, 4, 14, 9, 3, 23, 10, 23, 17, 10, 17, 22, 21, 2, 8, 21, 11, 11, 13, 21, 14, 14, 28, 21, 21, 28, 24, 23, 26, 29, 22, 5, 27, 3, 13, 10, 8, 17, 28, 23, 20, 11, 21, 7, 7, 18, 5, 14, 20, 15, 29, 16, 10, 30, 16, 1});
+    removeVector(tree, vector<int>{10, 12, 16, 16, 9, 5, 2, 19, 16, 10, 12, 18});
+    ASSERT_EQ(tree.preOrder().size(), 22);
+    tree.remove(11);
+    ASSERT_EQ(tree.preOrder().size(), 21);
 }
 
 TEST(TestTree, integers){
