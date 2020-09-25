@@ -193,14 +193,19 @@ void BSTree<T>::remove(T value){
         BSTNode<T>* child;
         if (toRemove->left != nullptr){
             child = toRemove->left;
-            toRemove->left = nullptr;
         } else {
             child = toRemove->right;
-            toRemove->right = nullptr;
         }
-        T keepVal = child->data;
-        remove(keepVal);
-        toRemove-> data = keepVal;
+        if (currentParent == nullptr){
+            root = child;
+            return;
+        }
+        if (currentParent->left == toRemove){
+            currentParent->left = child;
+        } else {
+            currentParent->right = child;
+        }
+        delete toRemove;
     } else if (children == 2) {
         BSTNode<T>* nextNode = toRemove->right;
         BSTNode<T>* nextNodeParent = toRemove;
@@ -301,6 +306,16 @@ TEST(TestTree, oneElement){
     ASSERT_TRUE(tree.includes(38));
     ASSERT_EQ(tree.size(), 1);
     ASSERT_FALSE(tree.isEmpty());
+}
+
+TEST(TestTree, breaker){
+    BSTree<int> tree;
+    tree.insert(1);
+    tree.insert(3);
+    tree.insert(4);
+    tree.remove(1);
+    
+    assertIncludesExactly(tree , vector<int>{3,4});
 }
 
 TEST(TestTree, integers){
