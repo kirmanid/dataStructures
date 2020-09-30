@@ -15,16 +15,18 @@ public:
     BSTNode<T>* left{nullptr};
     BSTNode<T>* right{nullptr};
     T data{};
+    size_t height{0};
     void postOrder(vector<T>& values) const;
     void preOrder(vector<T>& values) const;
     void inOrder(vector<T>& values) const;
 };
 
 template<typename T>
-class BSTNodeAndParent{
+class BSTNodeandParents{
 public:
     BSTNode<T>* node{nullptr};
     BSTNode<T>* parent{nullptr};
+//     vector<bool> path = vector<bool>({}); //true = right, false = left
 };
 
 template<typename T>
@@ -44,7 +46,7 @@ public:
    int size() const;
    bool isEmpty() const;
 private:
-    BSTNodeAndParent<T> searchSubtree(T value, BSTNode<T>* root, BSTNode<T>* parent, bool returnLeaf);
+    BSTNodeandParents<T> searchSubtree(T value, BSTNode<T>* root, BSTNode<T>* parent, bool returnLeaf, int deltaHeight);
 };
 
 template<typename T>
@@ -139,8 +141,8 @@ vector<T> BSTree<T>::postOrder() const {
 }
 
 template<typename T>
-BSTNodeAndParent<T> BSTree<T>::searchSubtree(T value, BSTNode<T>* root, BSTNode<T>* parent, bool returnLeaf){
-    BSTNodeAndParent<T> nodeNParent;
+BSTNodeandParents<T> BSTree<T>::searchSubtree(T value, BSTNode<T>* root, BSTNode<T>* parent, bool returnLeaf, int deltaHeight){
+    BSTNodeandParents<T> nodeNParent;
     nodeNParent.parent = parent;
     if (root == nullptr || treeSize == 0){
         return nodeNParent;
@@ -150,13 +152,24 @@ BSTNodeAndParent<T> BSTree<T>::searchSubtree(T value, BSTNode<T>* root, BSTNode<
         return nodeNParent;
     }
     if (root->left != nullptr && root->data > value){
-        return searchSubtree(value, root->left, root, returnLeaf);
+        if (root->left != nullptr && root->right != nullptr){
+            root->height = max(root->left->height, root->right->height) + deltaHeight;
+        } else {
+            root->height = root->left->height + deltaHeight;
+        }
+        return searchSubtree(value, root->left, root, returnLeaf, deltaHeight);
     }
-    if (root->right != nullptr && root->data < value){ 
-        return searchSubtree(value, root->right, root, returnLeaf);
+    if (root->right != nullptr && root->data < value){
+        if (root->left != nullptr && root->right != nullptr){
+            root->height = max(root->left->height, root->right->height) + deltaHeight;
+        } else {
+            root->height = root->right->height + deltaHeight;
+        }
+        return searchSubtree(value, root->right, root, returnLeaf, deltaHeight);
     }
     if (returnLeaf){
         nodeNParent.node = root;
+        root->height += deltaHeight;
         return nodeNParent;
     }
     return nodeNParent;
@@ -164,9 +177,9 @@ BSTNodeAndParent<T> BSTree<T>::searchSubtree(T value, BSTNode<T>* root, BSTNode<
 
 template<typename T>
 void BSTree<T>::remove(T value){
-    BSTNodeAndParent<T> removeAndParent = searchSubtree(value, root, nullptr, false);
-    BSTNode<T>* toRemove = removeAndParent.node;
-    BSTNode<T>* currentParent = removeAndParent.parent;
+    BSTNodeandParents<T> removeandParents = searchSubtree(value, root, nullptr, false, -1);
+    BSTNode<T>* toRemove = removeandParents.node;
+    BSTNode<T>* currentParent = removeandParents.parent;
     if (toRemove == nullptr){
         return;
     }
@@ -182,9 +195,7 @@ void BSTree<T>::remove(T value){
         delete toRemove;
         if (currentParent == nullptr){
             root = nullptr;
-            return;
-        }
-        if (currentParent->left == toRemove){
+        } else if (currentParent->left == toRemove){
             currentParent-> left = nullptr;
         } else {
             currentParent-> right = nullptr;
@@ -198,9 +209,7 @@ void BSTree<T>::remove(T value){
         }
         if (currentParent == nullptr){
             root = child;
-            return;
-        }
-        if (currentParent->left == toRemove){
+        } else if (currentParent->left == toRemove){
             currentParent->left = child;
         } else {
             currentParent->right = child;
@@ -217,15 +226,15 @@ void BSTree<T>::remove(T value){
         BSTNode<T>* keepRoot = root;
         root = nextNodeParent;
         remove(keepVal);
+        treeSize++;
         root = keepRoot;
         toRemove->data = keepVal;
-        treeSize++;
     }
 }
 
 template<typename T>
 bool BSTree<T>::includes(T value){
-    return (searchSubtree(value, root, nullptr, false).node != nullptr);
+    return (searchSubtree(value, root, nullptr, false, 0).node != nullptr);
 }
 
 template<typename T>
@@ -241,7 +250,7 @@ void BSTree<T>::insert(T value){
         treeSize--;
         return;
     }
-    BSTNode<T>* leaf = searchSubtree(value, root, nullptr, true).node;
+    BSTNode<T>* leaf = searchSubtree(value, root, nullptr, true, 1).node;
     newLeaf->data = value;
     if (value > leaf->data){
         leaf->right = newLeaf;
