@@ -16,6 +16,8 @@ public:
     BSTNode<T>* right{nullptr};
     T data{};
     size_t height{0};
+    void insert(T value, BSTNode<T>* parent, BSTNode<T>* newLeaf);
+    void remove(T value, BSTNode<T>*& parent);
     void postOrder(vector<T>& values) const;
     void preOrder(vector<T>& values) const;
     void inOrder(vector<T>& values) const;
@@ -26,7 +28,6 @@ class BSTNodeandParents{
 public:
     BSTNode<T>* node{nullptr};
     BSTNode<T>* parent{nullptr};
-//     vector<bool> path = vector<bool>({}); //true = right, false = left
 };
 
 template<typename T>
@@ -46,12 +47,68 @@ public:
    int size() const;
    bool isEmpty() const;
 private:
-    BSTNodeandParents<T> searchSubtree(T value, BSTNode<T>* root, BSTNode<T>* parent, bool returnLeaf, int deltaHeight);
+    BSTNodeandParents<T> searchSubtree(T value, BSTNode<T>* root, BSTNode<T>* parent, bool returnLeaf);
 };
 
 template<typename T>
 BSTNode<T>::~BSTNode(){
     data = -1;
+}
+
+template<typename T>
+void BSTNode<T>::insert(T value, BSTNode<T>* parent, BSTNode<T>* newLeaf){
+    //go right
+    if (parent->right != nullptr && parent->data < value){
+        insert(value, parent->right, newLeaf);
+    }
+    //go left
+    else if (parent->left != nullptr && parent->data > value){
+        insert(value, parent->left, newLeaf);
+    }
+    //create right
+    else if ( parent->data < value){
+        parent->right = newLeaf;
+        newLeaf->data = value;
+    }
+    //create left
+    else {
+        parent->left = newLeaf;
+        newLeaf->data = value;
+    }
+}
+
+// usage of 'parent' is different between two methods, so be careful
+
+template<typename T>
+void BSTNode<T>::remove(T value, BSTNode<T>*& self){
+    if(value == data){
+        if (self->left == nullptr && self->right == nullptr){ // 0 children
+            self = nullptr;
+            delete self;
+            return;
+        } else if (self->left != nullptr && self->right != nullptr){ // 2 children
+            BSTNode<T>* successor = self->right;
+            BSTNode<T>* successorParent = self;
+            while (successor->left != nullptr){
+                successorParent = successor;
+                successor = successor->left;
+            }
+            data = successor->data;
+            (successorParent->left == successor)? successorParent->left : successorParent->right = nullptr;
+            delete successor;
+        }
+        else{ // 1 child
+            BSTNode<T>* realSelf = self;
+            self = (self->right == nullptr)? self->left : self->right;
+            delete realSelf;
+        }
+    }
+    if (value < data && self->left != nullptr){
+        remove(value, self->left);
+    } else if (value > data && self->right != nullptr){
+        remove(value, self->right);
+    } 
+    // if it gets here, that means something tried to remove a node that doesn't exist, in which case nothing should happen
 }
 
 template<typename T>
@@ -141,7 +198,7 @@ vector<T> BSTree<T>::postOrder() const {
 }
 
 template<typename T>
-BSTNodeandParents<T> BSTree<T>::searchSubtree(T value, BSTNode<T>* root, BSTNode<T>* parent, bool returnLeaf, int deltaHeight){
+BSTNodeandParents<T> BSTree<T>::searchSubtree(T value, BSTNode<T>* root, BSTNode<T>* parent, bool returnLeaf){
     BSTNodeandParents<T> nodeNParent;
     nodeNParent.parent = parent;
     if (root == nullptr || treeSize == 0){
@@ -152,24 +209,13 @@ BSTNodeandParents<T> BSTree<T>::searchSubtree(T value, BSTNode<T>* root, BSTNode
         return nodeNParent;
     }
     if (root->left != nullptr && root->data > value){
-        if (root->left != nullptr && root->right != nullptr){
-            root->height = max(root->left->height, root->right->height) + deltaHeight;
-        } else {
-            root->height = root->left->height + deltaHeight;
-        }
-        return searchSubtree(value, root->left, root, returnLeaf, deltaHeight);
+        return searchSubtree(value, root->left, root, returnLeaf);
     }
-    if (root->right != nullptr && root->data < value){
-        if (root->left != nullptr && root->right != nullptr){
-            root->height = max(root->left->height, root->right->height) + deltaHeight;
-        } else {
-            root->height = root->right->height + deltaHeight;
-        }
-        return searchSubtree(value, root->right, root, returnLeaf, deltaHeight);
+    if (root->right != nullptr && root->data < value){ 
+        return searchSubtree(value, root->right, root, returnLeaf);
     }
     if (returnLeaf){
         nodeNParent.node = root;
-        root->height += deltaHeight;
         return nodeNParent;
     }
     return nodeNParent;
@@ -177,65 +223,16 @@ BSTNodeandParents<T> BSTree<T>::searchSubtree(T value, BSTNode<T>* root, BSTNode
 
 template<typename T>
 void BSTree<T>::remove(T value){
-    BSTNodeandParents<T> removeandParents = searchSubtree(value, root, nullptr, false, -1);
-    BSTNode<T>* toRemove = removeandParents.node;
-    BSTNode<T>* currentParent = removeandParents.parent;
-    if (toRemove == nullptr){
-        return;
-    }
     treeSize--;
-    size_t children = 0;
-    if(toRemove->left != nullptr){
-        children++;
-    }
-    if(toRemove->right != nullptr){
-        children++;
-    }
-    if (children == 0){
-        delete toRemove;
-        if (currentParent == nullptr){
-            root = nullptr;
-        } else if (currentParent->left == toRemove){
-            currentParent-> left = nullptr;
-        } else {
-            currentParent-> right = nullptr;
-        }
-    } else if (children == 1){
-        BSTNode<T>* child;
-        if (toRemove->left != nullptr){
-            child = toRemove->left;
-        } else {
-            child = toRemove->right;
-        }
-        if (currentParent == nullptr){
-            root = child;
-        } else if (currentParent->left == toRemove){
-            currentParent->left = child;
-        } else {
-            currentParent->right = child;
-        }
-        delete toRemove;
-    } else if (children == 2) {
-        BSTNode<T>* nextNode = toRemove->right;
-        BSTNode<T>* nextNodeParent = toRemove;
-        while(nextNode->left != nullptr){
-            nextNodeParent = nextNode;
-            nextNode = nextNode->left;
-        }
-        T keepVal = nextNode->data;
-        BSTNode<T>* keepRoot = root;
-        root = nextNodeParent;
-        remove(keepVal);
-        treeSize++;
-        root = keepRoot;
-        toRemove->data = keepVal;
-    }
+    root->remove(value, root);
 }
 
 template<typename T>
 bool BSTree<T>::includes(T value){
-    return (searchSubtree(value, root, nullptr, false, 0).node != nullptr);
+    return (searchSubtree(value, root, nullptr, false).node != nullptr);
 }
+
+/// can remove returnleaf functionality from searchSubtree now
 
 template<typename T>
 void BSTree<T>::insert(T value){
@@ -250,13 +247,7 @@ void BSTree<T>::insert(T value){
         treeSize--;
         return;
     }
-    BSTNode<T>* leaf = searchSubtree(value, root, nullptr, true, 1).node;
-    newLeaf->data = value;
-    if (value > leaf->data){
-        leaf->right = newLeaf;
-    } else {
-        leaf->left = newLeaf;
-    }
+    root->insert(value, root, newLeaf);
 }
 
 template<typename T>
@@ -302,18 +293,6 @@ BSTree<int> makeSixElementTree(){
     return tree;
 }
 
-TEST(TestTree, removeRoot){
-    BSTree<int> tree = makeSixElementTree();
-    ASSERT_TRUE(tree.includes(8));
-    ASSERT_EQ(tree.size(), 6);
-    tree.remove(8);
-    ASSERT_FALSE(tree.includes(8));
-    ASSERT_EQ(tree.size(), 5);
-
-    vector<int> remainingVals = {5,2,10,9,7};
-    assertIncludesAll(tree, remainingVals);
-    assertIncludesExactly(tree, remainingVals);
-}
 
 TEST(TestTree, insertFour){
     BSTree<int> tree;
@@ -341,6 +320,18 @@ TEST(TestTree, breaker){
     assertIncludesExactly(tree , vector<int>{3,4});
 }
 
+TEST(TestTree, removeRoot){
+    BSTree<int> tree = makeSixElementTree();
+    ASSERT_TRUE(tree.includes(8));
+    ASSERT_EQ(tree.size(), 6);
+    tree.remove(8);
+    ASSERT_FALSE(tree.includes(8));
+    ASSERT_EQ(tree.size(), 5);
+
+    vector<int> remainingVals = {5,2,10,9,7};
+    assertIncludesAll(tree, remainingVals);
+    assertIncludesExactly(tree, remainingVals);
+}
 
 TEST(TestTree, randomBreaker2){
     BSTree<int> tree;
