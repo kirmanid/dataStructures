@@ -318,7 +318,9 @@ void BSTree<T>::remove(T value){
     }
     treeSize--;
     root->remove(value, root);
-    balanceTree(value);
+    if (treeSize > 2){
+        balanceTree(value);
+    }
 }
 
 template<typename T>
