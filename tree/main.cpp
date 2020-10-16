@@ -114,7 +114,7 @@ void BSTNode<T>::remove(T value, BSTNode<T>*& self){
 
 template<typename T>
 void BSTNode<T>::rotRight(){
-    if (left == nullptr || right == nullptr || left->right == nullptr || left->left == nullptr){
+    if (left == nullptr){
         return;
     }
     BSTNode<T>* P = left;
@@ -134,7 +134,7 @@ void BSTNode<T>::rotRight(){
 
 template<typename T>
 void BSTNode<T>::rotLeft(){
-    if (left == nullptr || right == nullptr || right->right == nullptr || right->left == nullptr){
+    if (right == nullptr){
         return;
     }
     BSTNode<T>* Q = right;
@@ -262,6 +262,9 @@ void BSTNode<T>::balance(){
             rotRight();
         }
     }
+    rightHeight = (right == nullptr)? -1 : right->height;
+    leftHeight = (left == nullptr)? -1 : left->height;
+    height = (leftHeight > rightHeight)? leftHeight + 1 : rightHeight + 1;
 }
 
 template<typename T>
