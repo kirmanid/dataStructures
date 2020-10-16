@@ -15,7 +15,7 @@ public:
     BSTNode<T>* right{nullptr};
     T data{};
     size_t height{0};
-    void insert(T value, BSTNode<T>* parent, BSTNode<T>* newLeaf);
+    void insert(T value, BSTNode<T>* newLeaf);
     void remove(T value, BSTNode<T>*& parent);
     void postOrder(vector<T>& values) const;
     void preOrder(vector<T>& values) const;
@@ -53,23 +53,23 @@ private:
 };
 
 template<typename T>
-void BSTNode<T>::insert(T value, BSTNode<T>* parent, BSTNode<T>* newLeaf){
+void BSTNode<T>::insert(T value, BSTNode<T>* newLeaf){
     //go right
-    if (parent->right != nullptr && parent->data < value){
-        insert(value, parent->right, newLeaf);
+    if (right != nullptr && data < value){
+        right->insert(value, newLeaf);
     }
     //go left
-    else if (parent->left != nullptr && parent->data > value){
-        insert(value, parent->left, newLeaf);
+    else if (left != nullptr && data > value){
+        left->insert(value, newLeaf);
     }
     //create right
-    else if ( parent->data < value){
-        parent->right = newLeaf;
+    else if ( data < value){
+        right = newLeaf;
         newLeaf->data = value;
     }
     //create left
     else {
-        parent->left = newLeaf;
+        left = newLeaf;
         newLeaf->data = value;
     }
     balance();
@@ -311,7 +311,7 @@ void BSTree<T>::insert(T value){
         treeSize--;
         return;
     }
-    root->insert(value, root, newLeaf);
+    root->insert(value, newLeaf);
 }
 
 template<typename T>
