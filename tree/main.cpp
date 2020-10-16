@@ -11,7 +11,6 @@ using namespace std;
 template<typename T>
 class BSTNode{
 public:
-    ~BSTNode();
     BSTNode<T>* left{nullptr};
     BSTNode<T>* right{nullptr};
     T data{};
@@ -23,7 +22,7 @@ public:
     void inOrder(vector<T>& values) const;
     void rotLeft();
     void rotRight();
-    void getPath(T value, vector<BSTNode<T>*> path);
+    void balance();
 };
 
 template<typename T>
@@ -49,15 +48,9 @@ public:
    vector<T> postOrder() const;
    int size() const;
    bool isEmpty() const;
-   void balanceTree(T value);
 private:
     BSTNodeandParents<T> searchSubtree(T value, BSTNode<T>* root, BSTNode<T>* parent);
 };
-
-template<typename T>
-BSTNode<T>::~BSTNode(){
-    data = -1;
-}
 
 template<typename T>
 void BSTNode<T>::insert(T value, BSTNode<T>* parent, BSTNode<T>* newLeaf){
@@ -79,6 +72,7 @@ void BSTNode<T>::insert(T value, BSTNode<T>* parent, BSTNode<T>* newLeaf){
         parent->left = newLeaf;
         newLeaf->data = value;
     }
+    balance();
 }
 
 // usage of 'parent' is different between two methods, so be careful
@@ -86,32 +80,36 @@ void BSTNode<T>::insert(T value, BSTNode<T>* parent, BSTNode<T>* newLeaf){
 template<typename T>
 void BSTNode<T>::remove(T value, BSTNode<T>*& self){
     if(value == data){
-        if (self->left == nullptr && self->right == nullptr){ // 0 children
+        if (left == nullptr && right == nullptr){ // 0 children
             self = nullptr;
-            delete self;
-            return;
-        } else if (self->left != nullptr && self->right != nullptr){ // 2 children
-            BSTNode<T>* successor = self->right;
+            delete this;
+        } else if (left != nullptr && right != nullptr){ // 2 children
+            BSTNode<T>* successor = right;
             BSTNode<T>* successorParent = self;
             while (successor->left != nullptr){
                 successorParent = successor;
                 successor = successor->left;
             }
             data = successor->data;
-            remove(data, successor);
+            if (this == successorParent){
+                right->remove(data, right);
+            } else {
+                successorParent->remove(data, right);
+            }
         }
         else{ // 1 child
-            BSTNode<T>* realSelf = self;
-            self = (self->right == nullptr)? self->left : self->right;
-            delete realSelf;
+            self = (right == nullptr)? left : right;
+            delete this;
         }
     }
-    if (value < data && self->left != nullptr){
-        remove(value, self->left);
-    } else if (value > data && self->right != nullptr){
-        remove(value, self->right);
+    else if (value < data && left != nullptr){
+        left->remove(value, left);
+        balance();
+    } else if (value > data && right != nullptr){
+        right->remove(value, right);
+        balance();
     } 
-    // if it gets here, that means something tried to remove a node that doesn't exist, in which case nothing should happen
+
 }
 
 template<typename T>
@@ -134,8 +132,6 @@ void BSTNode<T>::rotRight(){
     P->left = B;
 }
 
-
-
 template<typename T>
 void BSTNode<T>::rotLeft(){
     if (left == nullptr || right == nullptr || right->right == nullptr || right->left == nullptr){
@@ -154,19 +150,6 @@ void BSTNode<T>::rotLeft(){
     right = C;
     Q->right = B;
     Q->left = A;
-}
-
-// path does not include a pointer to the node getPath() is called on
-template<typename T>
-void BSTNode<T>::getPath(T value, vector<BSTNode<T>*> path){
-    if (right != nullptr && data < value){
-        path.push_back(right);
-        right->getPath(value, path);
-    }
-    else if (left != nullptr && data > value){
-        path.push_back(left);
-        left->getPath(value, path);
-    }
 }
 
 template<typename T>
@@ -255,38 +238,28 @@ vector<T> BSTree<T>::postOrder() const {
     return ordered;
 }
 
-// "value" is the target value. Everything from the root to value, inclusive, is balanced. Also updates heights.
 template<typename T>
-void BSTree<T>::balanceTree(T value){
-    vector<BSTNode<T>*> path;
-    path.push_back(root);
-    root->getPath(value, path);
-    int leftHeight, rightHeight;
-    BSTNode<T>* current;
-    while (path.size() != 0){
-        current = path.back();
-        path.pop_back();
-        rightHeight = (current->right == nullptr)? -1 : current->right->height;
-        leftHeight = (current->left == nullptr)? -1 : current->left->height;
-        current->height = (leftHeight > rightHeight)? leftHeight + 1 : rightHeight + 1;
-        if (rightHeight - leftHeight > 1){ // Right, ____
-            rightHeight = (current->right->right == nullptr)? -1 : current->right->right->height;
-            leftHeight = (current->right->left == nullptr)? -1 : current->right->left->height;
-            if (rightHeight > leftHeight){ // Right, Right
-                current->rotLeft();
-            } else { // Right, Left
-                current->rotRight();
-                current->rotLeft();
-            }
-        } else if (rightHeight - leftHeight < -1){ // Left, ____
-            rightHeight = (current->left->right == nullptr)? -1 : current->left->right->height;
-            leftHeight = (current->left->left == nullptr)? -1 : current->left->left->height;
-            if (rightHeight > leftHeight){ // Left, Right
-                current->rotLeft();
-                current->rotRight();
-            } else { // Left, Left
-                current->rotRight();
-            }
+void BSTNode<T>::balance(){
+    int rightHeight = (right == nullptr)? -1 : right->height;
+    int leftHeight = (left == nullptr)? -1 : left->height;
+    height = (leftHeight > rightHeight)? leftHeight + 1 : rightHeight + 1;
+    if (rightHeight - leftHeight > 1){ // Right, ____
+        rightHeight = (right->right == nullptr)? -1 : right->right->height;
+        leftHeight = (right->left == nullptr)? -1 : right->left->height;
+        if (rightHeight > leftHeight){ // Right, Right
+            rotLeft();
+        } else { // Right, Left
+            rotRight();
+            rotLeft();
+        }
+    } else if (rightHeight - leftHeight < -1){ // Left, ____
+        rightHeight = (left->right == nullptr)? -1 : left->right->height;
+        leftHeight = (left->left == nullptr)? -1 : left->left->height;
+        if (rightHeight > leftHeight){ // Left, Right
+            rotLeft();
+            rotRight();
+        } else { // Left, Left
+            rotRight();
         }
     }
 }
@@ -318,9 +291,6 @@ void BSTree<T>::remove(T value){
     }
     treeSize--;
     root->remove(value, root);
-    if (treeSize > 2){
-        balanceTree(value);
-    }
 }
 
 template<typename T>
@@ -342,7 +312,6 @@ void BSTree<T>::insert(T value){
         return;
     }
     root->insert(value, root, newLeaf);
-    balanceTree(value);
 }
 
 template<typename T>
@@ -426,21 +395,6 @@ TEST(TestTree, removeRoot){
     vector<int> remainingVals = {5,2,10,9,7};
     assertIncludesAll(tree, remainingVals);
     assertIncludesExactly(tree, remainingVals);
-}
-
-TEST(TestTree, randomBreaker2){
-    BSTree<int> tree;
-    insertVector(tree, vector<int>{3, 25, 26, 26, 20, 17, 27, 5, 9, 23, 23, 29, 28, 13, 30, 7, 23, 25, 7, 2, 7, 8, 29, 28, 21, 29, 8, 17, 12, 20, 5, 27, 29, 12, 19, 26, 29, 28, 17, 11, 10, 6, 27, 16, 20, 4, 14, 9, 3, 23, 10, 23, 17, 10, 17, 22, 21, 2, 8, 21, 11, 11, 13, 21, 14, 14, 28, 21, 21, 28, 24, 23, 26, 29, 22, 5, 27, 3, 13, 10, 8, 17, 28, 23, 20, 11, 21, 7, 7, 18, 5, 14, 20, 15, 29, 16, 10, 30, 16, 1});
-    removeVector(tree, vector<int>{10, 12, 16, 16, 9, 5, 2, 19, 16, 10, 12, 18});
-    ASSERT_EQ(tree.preOrder().size(), 22);
-    tree.remove(11);
-    ASSERT_EQ(tree.preOrder().size(), 21);
-}
-
-TEST(TestTree, balanceDoesntCrash){
-    BSTree<int> tree;
-    insertVector(tree, vector<int>{3, 25, 26, 26, 20, 17, 27, 5, 9, 23, 23, 29, 28, 13, 30, 7, 23, 25, 7, 2, 7, 8, 29, 28, 21, 29, 8, 17, 12, 20, 5, 27, 29, 12, 19, 26, 29, 28, 17, 11, 10, 6, 27, 16, 20, 4, 14, 9, 3, 23, 10, 23, 17, 10, 17, 22, 21, 2, 8, 21, 11, 11, 13, 21, 14, 14, 28, 21, 21, 28, 24, 23, 26, 29, 22, 5, 27, 3, 13, 10, 8, 17, 28, 23, 20, 11, 21, 7, 7, 18, 5, 14, 20, 15, 29, 16, 10, 30, 16, 1});
-    tree.balanceTree(2);
 }
 
 TEST(TestTree, integers){
@@ -533,7 +487,16 @@ TEST(TestTree, inOrderBasic){
     ASSERT_EQ(tree.inOrder(), sorted);
 }
 
-/// crashes nondeterministically. If seed = 42, all is well, but segfaults when seed = 43.
+TEST(TestTree, breaker2){
+    BSTree<int> tree;
+    insertVector(tree, vector<int>{3, 25, 26, 26, 20, 17, 27, 5, 9, 23, 23, 29, 28, 13, 30, 7, 23, 25, 7, 2, 7, 8, 29, 28, 21, 29, 8, 17, 12, 20, 5, 27, 29, 12, 19, 26, 29, 28, 17, 11, 10, 6, 27, 16, 20, 4, 14, 9, 3, 23, 10, 23, 17, 10, 17, 22, 21, 2, 8, 21, 11, 11, 13, 21, 14, 14, 28, 21, 21, 28, 24, 23, 26, 29, 22, 5, 27, 3, 13, 10, 8, 17, 28, 23, 20, 11, 21, 7, 7, 18, 5, 14, 20, 15, 29, 16, 10, 30, 16, 1});
+    removeVector(tree, vector<int>{10, 12, 16, 16, 9, 5, 2, 19, 16, 10, 12, 18});
+    ASSERT_EQ(tree.preOrder().size(), 22);
+    tree.remove(11);
+    ASSERT_EQ(tree.preOrder().size(), 21);
+}
+
+/// crashes nondeterministically :(
 TEST(TestTree, inOrderIntegers){
     BSTree<int> tree;
     int start = -3e2;
