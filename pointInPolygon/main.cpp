@@ -91,19 +91,37 @@ bool pointInPolygon(Graphics& g, vector<Vec2d> polygon, Vec2d point){
 void graphicsMain(Graphics& g)
 {
     vector<Vec2d> polygon;
-    Vec2d p = g.mousePos();
+//    Vec2d p = g.mousePos();
+    vector<Vec2d> pointsIn;
+    vector<Vec2d> pointsOut;
    while (g.draw()) {
-       g.clear();
-       Color c = pointInPolygon(g, polygon, p)? GREEN : RED;
-       g.point(p,YELLOW);
-       g.polygon(polygon, c);
-
+         g.clear();
+//       for (int i = 0; i < g.width() * g.height(); i++){
+//           Vec2d p(i%g.width() , i/g.width());
+//           Color c = pointInPolygon(g, polygon, p)? GREEN : RED;
+//           g.point(p,c);
+//       }
+         g.points(pointsIn, GREEN);
+         g.points(pointsOut, RED);
+         g.polygon(polygon, YELLOW);
        for (const Event& e : g.events())
        {
            switch (e.evtType)
            {
            case EvtType::MousePress:
                polygon.push_back(Vec2d(e.x, e.y));
+               pointsIn.clear();
+               pointsOut.clear();
+               for (int x = 0; x < g.width(); x+= 3){
+                    for (int y = 0; y < g.height(); y+= 3){
+                        Vec2d p(x,y);
+                        if (pointInPolygon(g, polygon, p)){
+                            pointsIn.push_back(p);
+                        } else {
+                            pointsOut.push_back(p);
+                        }
+                    }
+               }
                break;
            case EvtType::MouseRelease:
                break;
@@ -112,8 +130,7 @@ void graphicsMain(Graphics& g)
            case EvtType::MouseMove:
                break;
            case EvtType::KeyPress:
-                p = g.mousePos();
-
+//                p = g.mousePos();
                break;
            case EvtType::KeyRelease:
                break;

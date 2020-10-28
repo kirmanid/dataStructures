@@ -1217,7 +1217,7 @@ GrobPoints::GrobPoints(const std::vector<Vec2d>& points, Color _c)
 void GrobPoints::draw(QPainter *painter)
 {
     QPen pen;
-    pen.setWidth(20);
+    pen.setWidth(2);
     pen.setColor(QColor{c.r, c.g, c.b, c.a});
     painter->setPen(pen);
     painter->drawPoints(&points[0], points.size());
