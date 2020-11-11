@@ -117,6 +117,13 @@ vector<Vec2d> quickHullRecursive(Vec2d begin, Vec2d end, vector<Vec2d>& cloud){
         line.push_back(end);
         return(line);
     }
+    if (subcloud.size() == 1){
+        vector<Vec2d> subhull;
+        subhull.push_back(begin);
+        subhull.push_back(subcloud[0]);
+        subhull.push_back(end);
+        return(subhull);
+    }
     Vec2d farthest;
     float maxDistance = 0;
     for (Vec2d pt : subcloud){
@@ -125,8 +132,8 @@ vector<Vec2d> quickHullRecursive(Vec2d begin, Vec2d end, vector<Vec2d>& cloud){
             maxDistance = distToLine(pt, begin, end);
         }
     }
-    vector<Vec2d> segment1 = quickHullRecursive(begin, farthest, cloud);
-    vector<Vec2d> segment2 = quickHullRecursive(farthest, end, cloud);
+    vector<Vec2d> segment1 = quickHullRecursive(begin, farthest, subcloud);
+    vector<Vec2d> segment2 = quickHullRecursive(farthest, end, subcloud);
     segment1.pop_back();
     segment1.insert(segment1.end(), segment2.begin(), segment2.end());
     return segment1;
@@ -139,10 +146,10 @@ vector<Vec2d> quickHull(vector<Vec2d>& cloud){
     leftmost.x = INFINITY;
     rightmost.x = -1 * INFINITY;
     for (Vec2d point : cloud){
-        if (leftmost.x < point.x){
+        if (leftmost.x > point.x){
             leftmost = point;
         }
-        if (rightmost.x > point.x){
+        if (rightmost.x < point.x){
             rightmost = point;
         }
     }
@@ -183,6 +190,7 @@ void graphicsMain(Graphics& g)
            case EvtType::MouseMove:
                break;
            case EvtType::KeyPress:
+               cloud.clear();
                while (cloud.size() < 50 ){
                    cloud.push_back(Vec2d(g.width() * 1.0 * rand() / RAND_MAX, g.height() * 1.0 * rand() / RAND_MAX));
                }
