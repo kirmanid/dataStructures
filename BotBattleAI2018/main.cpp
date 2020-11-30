@@ -55,6 +55,7 @@ rnn::rnn(size_t stateSize, size_t inputSize){
     forgetBiases = VectorXf::Zero(stateSize);
     biases = forgetBiases;
     inputWeights = MatrixXf::Zero(stateSize, inputSize);
+    zeroState();
 }
 
 void rnn::tweakMatrix(MatrixXf& matrix, float radius){
@@ -183,17 +184,19 @@ class MyBotAI : public BotAI
 public:
     double& lastEventTime;
     double& birthdate;
+    size_t& bulletsHit;
     rnn& brain;
-    MyBotAI(rnn& brain_, double&, double&);
+    MyBotAI(rnn& brain_, double&, double&, size_t& bulletsHit);
     virtual BotCmd handleEvents(mssm::Graphics& g, BotEvent& event);
     virtual void logEvent(mssm::Graphics& g, std::string event);
     virtual void logCommand(mssm::Graphics& g, std::string command);
 };
 
-MyBotAI::MyBotAI(rnn& brain_, double& birthdate_, double& lastEventTime_)
+MyBotAI::MyBotAI(rnn& brain_, double& birthdate_, double& lastEventTime_, size_t& bulletsHit_)
     : lastEventTime{lastEventTime_},
       birthdate{birthdate_},
-      brain{brain_}
+      brain{brain_},
+      bulletsHit{bulletsHit_}
 {
     firstEvent = true;
     setName("Hill Climber");
@@ -240,8 +243,11 @@ BotCmd MyBotAI::handleEvents(mssm::Graphics& g, BotEvent& event)
         mean = 0;
         variance = 0;
         }
+    if (event.eventType == BotEventType::PowerUp){
+        bulletsHit++;
+    }
     // build input vector, length 16
-    VectorXf inputs;
+    VectorXf inputs = VectorXf::Zero(15);
     for (int i = 0; i < 9; i++){
         inputs[i] = (i == eventType? 1.0 : 0.0);
     }
@@ -302,18 +308,18 @@ void botBrainLoop(Graphics& g)
 
     double currentTime;
     double challengerBirthday;
-    rnn champ{64,16};
-    rnn challenger{64,16};
-    double champFitness = -INFINITY;
-    double challengerFitness;
+    rnn champ{64,15};
+    rnn challenger{64,15};
+    size_t champFitness = 0;
+    size_t challengerFitness = 0;
 
-    botManager.addBot(std::make_unique<MyBotAI>(champ, challengerBirthday, currentTime));
+    challenger.mutateParams(1);
+    botManager.addBot(std::make_unique<MyBotAI>(challenger, challengerBirthday, currentTime, challengerFitness));
 
     while (g.draw())
     {
         g.clear();
 
-        challenger.zeroState();
         for (const Event& e : g.events())
         {
             if (botManager.processEvent(e)) {
@@ -321,8 +327,18 @@ void botBrainLoop(Graphics& g)
             }
 
             if (botManager.numBots() == 0) {
-                botManager.addBot(std::make_unique<MyBotAI>(champ, challengerBirthday, currentTime));
-                challengerFitness = currentTime - challengerBirthday;
+                challenger.zeroState();
+                challengerFitness = 0;
+                botManager.addBot(std::make_unique<MyBotAI>(challenger, challengerBirthday, currentTime, challengerFitness));
+//                challengerFitness = currentTime - challengerBirthday;
+
+                if (challengerFitness >= champFitness){
+                    champ.adoptParams(challenger);
+                    champFitness = challengerFitness;
+                } else {
+                    challenger.adoptParams(champ);
+                }
+                challenger.mutateParams(0.0008);
                 continue;
             }
 
@@ -335,12 +351,6 @@ void botBrainLoop(Graphics& g)
             }
         }
 
-        if (challengerFitness >= champFitness){
-            champ.adoptParams(challenger);
-        } else {
-            challenger.adoptParams(champ);
-        }
-        challenger.mutateParams(0.0008);
     }
 }
 
