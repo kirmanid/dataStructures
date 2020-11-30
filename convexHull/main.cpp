@@ -93,19 +93,16 @@ float distToLine(Vec2d p, Vec2d b, Vec2d e ){ // short for point, begin, end
     return absDotProduct/lineMagnitude;
 }
 
+float zCoordCrossProduct (Vec2d v1begin, Vec2d v1end, Vec2d v2begin, Vec2d v2end){
+    return (v1end.x - v1begin.x) * (v2end.y - v2begin.y) - (v1end.y - v1begin.y) * (v2end.x - v2begin.x);
+}
+
 bool toRightOfLine(Vec2d p, Vec2d b, Vec2d e){
-    float deltaX = e.x - b.x;
-    if (deltaX == 0){
-        return p.x > b.x;
-    }
-    float m = (e.y - b.y)/deltaX;
-    float yInt = b.y - m * b.x;
-    bool aboveLine =  p.y > yInt + p.x * m;
-    return aboveLine != (b.y < e.y);
+    return (0 < zCoordCrossProduct(b,p,b,e));
 }
 
 vector<Vec2d> quickHullRecursive(Vec2d begin, Vec2d end, vector<Vec2d>& cloud){
-    vector<Vec2d> subcloud;
+     vector<Vec2d> subcloud;
     for (Vec2d pt : cloud){
         if (toRightOfLine(pt, begin, end)){
             subcloud.push_back(pt);
@@ -191,9 +188,13 @@ void graphicsMain(Graphics& g)
                break;
            case EvtType::KeyPress:
                cloud.clear();
-               while (cloud.size() < 50 ){
+               while (cloud.size() < 5e4 ){
                    cloud.push_back(Vec2d(g.width() * 1.0 * rand() / RAND_MAX, g.height() * 1.0 * rand() / RAND_MAX));
                }
+//               cloud.push_back(Vec2d(100,100));
+//               cloud.push_back(Vec2d(20,100));
+//               cloud.push_back(Vec2d(100,20));
+//               cloud.push_back(Vec2d(20,20));
                hull = quickHull(cloud);
                break;
            case EvtType::KeyRelease:

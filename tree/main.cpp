@@ -139,7 +139,7 @@ void BSTNode<T>::rotLeft(){
     }
     BSTNode<T>* Q = right;
     BSTNode<T>* A = left;
-    BSTNode<T>* B = Q->right;
+    BSTNode<T>* B = Q->left;
     BSTNode<T>* C = Q->right;
     
     T pTemp = data;
@@ -249,14 +249,14 @@ void BSTNode<T>::balance(){
         if (rightHeight > leftHeight){ // Right, Right
             rotLeft();
         } else { // Right, Left
-            rotRight();
+            right->rotRight();
             rotLeft();
         }
     } else if (rightHeight - leftHeight < -1){ // Left, ____
         rightHeight = (left->right == nullptr)? -1 : left->right->height;
         leftHeight = (left->left == nullptr)? -1 : left->left->height;
         if (rightHeight > leftHeight){ // Left, Right
-            rotLeft();
+            left->rotLeft();
             rotRight();
         } else { // Left, Left
             rotRight();
@@ -499,7 +499,6 @@ TEST(TestTree, breaker2){
     ASSERT_EQ(tree.preOrder().size(), 21);
 }
 
-/// crashes nondeterministically :(
 TEST(TestTree, inOrderIntegers){
     BSTree<int> tree;
     int start = -3e2;
@@ -509,7 +508,7 @@ TEST(TestTree, inOrderIntegers){
         treeBuilder.push_back(i);
     }
 //     size_t seed;
-    size_t seed = 42;
+    size_t seed;
     srand(seed);
     std::random_shuffle(treeBuilder.begin(), treeBuilder.end());
     for (int element : treeBuilder){
@@ -520,6 +519,11 @@ TEST(TestTree, inOrderIntegers){
         ASSERT_TRUE(inOrder[i] < inOrder[i + 1]);
     }
 }
+
+// TEST(TestTree, randBalanced){
+//     BSTree<int> tree = makeSixElementTree();
+//     vector<int> postOrder = {2,5,9,7,10,8};
+// }
 
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
