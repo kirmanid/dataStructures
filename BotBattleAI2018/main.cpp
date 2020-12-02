@@ -20,7 +20,6 @@ using namespace Eigen;
 class rnn{
 public:
     rnn(size_t stateSize, size_t inputSize);
-    void unroll();
     void unroll(VectorXf& input);
     void mutateParams(float searchRadius);
     void adoptParams(rnn& other);
@@ -43,7 +42,7 @@ private:
 
 void rnn::unroll(VectorXf& input){
     VectorXf forget = (forgetWeights * state + forgetBiases).unaryExpr([&](float x){return hardSigmoid(x);});
-    VectorXf deltas = (weights * state + inputWeights * input + biases).unaryExpr([&](float x){return hardTanh(x);});
+    VectorXf deltas = (weights * state + inputWeights * input + biases).unaryExpr([&](float x){return plu(x);});
     state = state.cwiseProduct(forget);
     deltas = deltas.cwiseProduct(VectorXf::Ones(deltas.size()) - forget);
     state = state + deltas;
@@ -89,7 +88,7 @@ void rnn::zeroParams(){
 }
 
 void rnn::zeroState(){
-    state = VectorXf::Zero(forgetBiases.size());
+    state = VectorXf::Zero(biases.size());
 }
 
 float rnn::hardSigmoid (float x){
@@ -193,9 +192,9 @@ public:
 };
 
 MyBotAI::MyBotAI(rnn& brain_, double& birthdate_, double& lastEventTime_, size_t& bulletsHit_)
-    : lastEventTime{lastEventTime_},
+    : brain{brain_},
+      lastEventTime{lastEventTime_},
       birthdate{birthdate_},
-      brain{brain_},
       bulletsHit{bulletsHit_}
 {
     firstEvent = true;
@@ -243,9 +242,11 @@ BotCmd MyBotAI::handleEvents(mssm::Graphics& g, BotEvent& event)
         mean = 0;
         variance = 0;
         }
-    if (event.eventType == BotEventType::PowerUp){
+
+    if (event.eventType == BotEventType::TurnComplete){
         bulletsHit++;
     }
+
     // build input vector, length 16
     VectorXf inputs = VectorXf::Zero(15);
     for (int i = 0; i < 9; i++){
@@ -295,11 +296,13 @@ BotCmd MyBotAI::handleEvents(mssm::Graphics& g, BotEvent& event)
 void MyBotAI::logEvent(mssm::Graphics& /*g*/, std::string event)
 {
     cout << "EVENT: " << event << endl;
+
 }
 
 void MyBotAI::logCommand(mssm::Graphics& /*g*/, std::string command)
 {
     cout << "CMD:   " << command << endl;
+
 }
 
 void botBrainLoop(Graphics& g)
@@ -308,13 +311,13 @@ void botBrainLoop(Graphics& g)
 
     double currentTime;
     double challengerBirthday;
-    rnn champ{64,15};
-    rnn challenger{64,15};
-    size_t champFitness = 0;
+    rnn champ{25,15};
+    rnn challenger{25,15};
+    size_t hits = 0;
     size_t challengerFitness = 0;
+    size_t champFitness = 0;
 
-    challenger.mutateParams(1);
-    botManager.addBot(std::make_unique<MyBotAI>(challenger, challengerBirthday, currentTime, challengerFitness));
+    botManager.addBot(std::make_unique<MyBotAI>(challenger, challengerBirthday, currentTime, hits));
 
     while (g.draw())
     {
@@ -328,8 +331,8 @@ void botBrainLoop(Graphics& g)
 
             if (botManager.numBots() == 0) {
                 challenger.zeroState();
-                challengerFitness = 0;
-                botManager.addBot(std::make_unique<MyBotAI>(challenger, challengerBirthday, currentTime, challengerFitness));
+                cout << "\n\n\n\n Fitness: "<< challengerFitness << endl;
+                challengerFitness = hits;
 //                challengerFitness = currentTime - challengerBirthday;
 
                 if (challengerFitness >= champFitness){
@@ -339,6 +342,8 @@ void botBrainLoop(Graphics& g)
                     challenger.adoptParams(champ);
                 }
                 challenger.mutateParams(0.0008);
+                hits = 0;
+                botManager.addBot(std::make_unique<MyBotAI>(challenger, challengerBirthday, currentTime, hits));
                 continue;
             }
 
