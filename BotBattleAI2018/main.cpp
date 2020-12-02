@@ -210,8 +210,9 @@ BotCmd MyBotAI::handleEvents(mssm::Graphics& g, BotEvent& event)
     }
 
     cout<< event.eventTime << endl;
+    float deltaTime;
+    deltaTime = log10(0.1 + event.eventTime - lastEventTime);
     int eventType = static_cast<int>(event.eventType); // 0-9, inclusive
-    float deltaTime = log10(event.eventTime - lastEventTime);
     lastEventTime = event.eventTime;
     float collisonAngle;
     if (event.collisionAngle > 3.2 || event.collisionAngle < -3.2){
@@ -219,9 +220,9 @@ BotCmd MyBotAI::handleEvents(mssm::Graphics& g, BotEvent& event)
     } else {
         collisonAngle = event.collisionAngle/3;
     }
-    float mean;
+    float mean = 0;
     float variance = 0;
-    bool scanDataExists = event.scanData.size() == 0;
+    bool scanDataExists = event.scanData.size() != 0;
     if (scanDataExists){
         vector<int> locations;
        float sumLocations = 0;
@@ -231,21 +232,21 @@ BotCmd MyBotAI::handleEvents(mssm::Graphics& g, BotEvent& event)
                 sumLocations += i;
             }
         }
-        mean = sumLocations/locations.size();
-        for (int location : locations){
-            variance += (location - mean) * (location - mean);
+        if (!locations.empty()){
+            mean = sumLocations/locations.size();
+            for (int location : locations){
+                variance += (location - mean) * (location - mean);
+            }
+            variance = log10(variance / locations.size());
+            float center = event.scanData.size()/2;
+            mean = (mean - center) / center;
         }
-        variance = log10(variance / locations.size());
-        float center = event.scanData.size()/2;
-        mean = (mean - center) / center;
-    } else {
-        mean = 0;
-        variance = 0;
-        }
+    }
 
-    if (event.eventType == BotEventType::TurnComplete){
+    if (event.eventType == BotEventType::MoveComplete){
         bulletsHit++;
     }
+    cout << "Current Fitness: " << bulletsHit << endl;
 
     // build input vector, length 16
     VectorXf inputs = VectorXf::Zero(15);
@@ -263,7 +264,7 @@ BotCmd MyBotAI::handleEvents(mssm::Graphics& g, BotEvent& event)
     VectorXf actions = brain.state.head(6);
 
     int action;
-    float pAction = -1 * INFINITY;
+    float pAction = -INFINITY;
     bool ignorable = eventType >= 7 && eventType <= 9;
     for (int i = 0; i < (ignorable? 5 : 4); i++){
         if (actions[i] > pAction){
@@ -276,20 +277,17 @@ BotCmd MyBotAI::handleEvents(mssm::Graphics& g, BotEvent& event)
     switch(action){
         case 0:
             return MoveForward(time);
-            break;
         case 1:
             return Turn(time);
-            break;
         case 2:
             return Fire();
-            break;
         case 3:
             return Scan(time);
-            break;
         case 4:
             return Ignore();
-            break;
-
+        default:
+            cout << "THIS SHOULD NEVER HAPPEN";
+            return Turn(1);
     }
 }
 
@@ -312,6 +310,7 @@ void botBrainLoop(Graphics& g)
     double currentTime;
     double challengerBirthday;
     rnn champ{25,15};
+    champ.mutateParams(0.3);
     rnn challenger{25,15};
     size_t hits = 0;
     size_t challengerFitness = 0;
@@ -331,10 +330,9 @@ void botBrainLoop(Graphics& g)
 
             if (botManager.numBots() == 0) {
                 challenger.zeroState();
-                cout << "\n\n\n\n Fitness: "<< challengerFitness << endl;
                 challengerFitness = hits;
+                cout << "\n\n\n\n Fitness: "<< challengerFitness << endl;
 //                challengerFitness = currentTime - challengerBirthday;
-
                 if (challengerFitness >= champFitness){
                     champ.adoptParams(challenger);
                     champFitness = challengerFitness;
@@ -342,6 +340,7 @@ void botBrainLoop(Graphics& g)
                     challenger.adoptParams(champ);
                 }
                 challenger.mutateParams(0.0008);
+
                 hits = 0;
                 botManager.addBot(std::make_unique<MyBotAI>(challenger, challengerBirthday, currentTime, hits));
                 continue;
