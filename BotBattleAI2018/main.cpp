@@ -11,6 +11,7 @@ using namespace std;
 
 
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <cmath>
 #include <./eigen-3.3.8/Eigen/Core>
@@ -25,6 +26,8 @@ public:
     void adoptParams(rnn& other);
     void zeroParams();
     void zeroState();
+    void saveParams(std::string filename);
+    void readParams(std::string filename);
     VectorXf state;
     MatrixXf forgetWeights;
     VectorXf forgetBiases;
@@ -32,6 +35,8 @@ public:
     VectorXf biases;
     MatrixXf inputWeights;
 private:
+    template <typename M> void readMat (M& mat, std::istream& stream);
+    template <typename M> void saveMat(M& mat, std::ostream& stream);
     void tweakMatrix(MatrixXf& matrix, float radius);
     void tweakVector(VectorXf& vector, float radius);
     float hardSigmoid(float x);
@@ -39,6 +44,47 @@ private:
     float hardTanh(float x);
     float reluSix(float x);
 };
+
+void rnn::readParams(std::string filename){
+    std::ifstream file(filename);
+    if (file.is_open()){
+        readMat(forgetWeights, file);
+        readMat(forgetBiases, file);
+        readMat(weights, file);
+        readMat(biases, file);
+        readMat(inputWeights, file);
+    }
+}
+
+template <typename M>
+void rnn::readMat (M& mat, std::istream& stream){
+    int numRows;
+    int numCols;
+    stream >> numRows >> numCols;
+    mat.resize(numRows, numCols);
+    for (int i = 0; i < numRows; i++){
+        for(int j = 0; j < numCols; j++){
+            stream >> mat(i,j);
+        }
+    }
+}
+
+void rnn::saveParams(std::string filename){
+    std::ofstream file(filename);
+    if (file.is_open()){
+        saveMat(forgetWeights, file);
+        saveMat(forgetBiases, file);
+        saveMat(weights, file);
+        saveMat(biases, file);
+        saveMat(inputWeights, file);
+    }
+}
+
+template<typename M>
+void rnn::saveMat(M& mat, std::ostream& stream){
+    stream << mat.rows() << "   " << mat.cols() << std::endl;
+    stream << mat << std::endl;
+}
 
 void rnn::unroll(VectorXf& input){
     VectorXf forget = (forgetWeights * state + forgetBiases).unaryExpr([&](float x){return hardSigmoid(x);});
@@ -181,21 +227,23 @@ class MyBotAI : public BotAI
 {
     bool firstEvent;
 public:
+    double lifespan;
     double& lastEventTime;
     double& birthdate;
     size_t& bulletsHit;
     rnn& brain;
-    MyBotAI(rnn& brain_, double&, double&, size_t& bulletsHit);
+    MyBotAI(rnn& brain_, double&, double&, size_t& bulletsHit, double lifespan);
     virtual BotCmd handleEvents(mssm::Graphics& g, BotEvent& event);
     virtual void logEvent(mssm::Graphics& g, std::string event);
     virtual void logCommand(mssm::Graphics& g, std::string command);
 };
 
-MyBotAI::MyBotAI(rnn& brain_, double& birthdate_, double& lastEventTime_, size_t& bulletsHit_)
+MyBotAI::MyBotAI(rnn& brain_, double& birthdate_, double& lastEventTime_, size_t& bulletsHit_, double lifespan_)
     : brain{brain_},
       lastEventTime{lastEventTime_},
       birthdate{birthdate_},
-      bulletsHit{bulletsHit_}
+      bulletsHit{bulletsHit_},
+      lifespan{lifespan_}
 {
     firstEvent = true;
     setName("Hill Climber");
@@ -207,6 +255,11 @@ BotCmd MyBotAI::handleEvents(mssm::Graphics& g, BotEvent& event)
         firstEvent = false;
         birthdate = event.eventTime;
         lastEventTime = event.eventTime;
+    }
+
+    if (lastEventTime - birthdate > lifespan){
+        // suicide by moving fwd
+        return MoveForward(1);
     }
 
     cout<< event.eventTime << endl;
@@ -243,7 +296,7 @@ BotCmd MyBotAI::handleEvents(mssm::Graphics& g, BotEvent& event)
         }
     }
 
-    if (event.eventType == BotEventType::MoveComplete){
+    if (event.eventType == BotEventType::PowerUp){
         bulletsHit++;
     }
     cout << "Current Fitness: " << bulletsHit << endl;
@@ -272,7 +325,7 @@ BotCmd MyBotAI::handleEvents(mssm::Graphics& g, BotEvent& event)
             pAction = actions[i];
         }
     }
-    double time = pow(2, actions[5]);
+    double time = pow(2, actions[5] * 1e3);
 
     switch(action){
         case 0:
@@ -293,13 +346,13 @@ BotCmd MyBotAI::handleEvents(mssm::Graphics& g, BotEvent& event)
 
 void MyBotAI::logEvent(mssm::Graphics& /*g*/, std::string event)
 {
-    cout << "EVENT: " << event << endl;
+//    cout << "EVENT: " << event << endl;
 
 }
 
 void MyBotAI::logCommand(mssm::Graphics& /*g*/, std::string command)
 {
-    cout << "CMD:   " << command << endl;
+//    cout << "CMD:   " << command << endl;
 
 }
 
@@ -309,14 +362,18 @@ void botBrainLoop(Graphics& g)
 
     double currentTime;
     double challengerBirthday;
-    rnn champ{25,15};
-    champ.mutateParams(0.3);
-    rnn challenger{25,15};
+    rnn champ{64,15};
+    champ.mutateParams(.001);
+    rnn challenger{64,15};
     size_t hits = 0;
     size_t challengerFitness = 0;
     size_t champFitness = 0;
+    double lifespan = 40;
+    size_t generation = 0;
 
-    botManager.addBot(std::make_unique<MyBotAI>(challenger, challengerBirthday, currentTime, hits));
+    botManager.addBot(std::make_unique<MyBotAI>(challenger, challengerBirthday, currentTime, hits, lifespan));
+
+    std::ofstream log("log");
 
     while (g.draw())
     {
@@ -329,9 +386,17 @@ void botBrainLoop(Graphics& g)
             }
 
             if (botManager.numBots() == 0) {
+
                 challenger.zeroState();
                 challengerFitness = hits;
+
+                if (generation % 20 == 0){
+                    log << generation << ", " << challengerFitness << ", " << champFitness << std::endl;
+                }
+
                 cout << "\n\n\n\n Fitness: "<< challengerFitness << endl;
+                cout << "Generation #: " << generation << endl;
+                generation++;
 //                challengerFitness = currentTime - challengerBirthday;
                 if (challengerFitness >= champFitness){
                     champ.adoptParams(challenger);
@@ -342,7 +407,7 @@ void botBrainLoop(Graphics& g)
                 challenger.mutateParams(0.0008);
 
                 hits = 0;
-                botManager.addBot(std::make_unique<MyBotAI>(challenger, challengerBirthday, currentTime, hits));
+                botManager.addBot(std::make_unique<MyBotAI>(challenger, challengerBirthday, currentTime, hits, lifespan));
                 continue;
             }
 
