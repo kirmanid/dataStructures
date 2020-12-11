@@ -70,3 +70,9 @@ BotCmd BotAI::Ignore()
     checkCommandIssued();
     return BotCmd{BotCmdType::Ignore, 0, 0};
 }
+
+BotCmd BotAI::Resign()
+{
+    checkCommandIssued();
+    return BotCmd{BotCmdType::Resign, 0, 0};
+}

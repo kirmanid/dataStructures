@@ -21,6 +21,9 @@ void BotCmd::write(ostream &strm, bool includeCR)
     case BotCmdType::Ignore:
         strm << "Ignore";
         break;
+    case BotCmdType::Resign:
+        strm << "Resign";
+        break;
     }
 
     if (includeCR) {

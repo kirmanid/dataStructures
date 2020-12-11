@@ -11,6 +11,7 @@ enum class BotCmdType
     Fire,
     Scan,
     Ignore,
+    Resign,
 };
 
 class BotCmd

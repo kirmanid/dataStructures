@@ -258,8 +258,7 @@ BotCmd MyBotAI::handleEvents(mssm::Graphics& g, BotEvent& event)
     }
 
     if (lastEventTime - birthdate > lifespan){
-        // suicide by moving fwd
-        return MoveForward(1);
+        return Resign();
     }
 
     cout<< event.eventTime << endl;
@@ -465,5 +464,6 @@ void graphicsMain(Graphics& g)
 
 int main()
 {
+    srand(0);
     Graphics g("Bot Battle Client", 1000, 800, graphicsMain);
 }

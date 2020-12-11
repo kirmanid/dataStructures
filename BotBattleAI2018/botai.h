@@ -23,6 +23,7 @@ public:
     void resetCommandIssued() { commandIssued = false; }
     virtual void logEvent(mssm::Graphics& g, std::string event) = 0;
     virtual void logCommand(mssm::Graphics& g, std::string command) = 0;
+    virtual bool isDead() { return false; }
 protected:
     void checkCommandIssued();
     void setName(const std::string& name);
@@ -32,6 +33,7 @@ protected:
     BotCmd Fire();
     BotCmd Scan(double fieldOfView);
     BotCmd Ignore();
+    BotCmd Resign();
 };
 
 #endif // BOTAI_H

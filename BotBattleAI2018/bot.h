@@ -32,6 +32,8 @@ public:
 
     std::string name() { return brain->getName(); }
 
+    bool isDead() { return brain->isDead(); }
+
 protected:
 
     BotCmd handleEvents(mssm::Graphics& g, BotEvent& event);

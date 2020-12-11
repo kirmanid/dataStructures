@@ -16,7 +16,7 @@ public:
     ConnectedBot(mssm::Graphics& g, std::unique_ptr<BotAI> brain, int port, const std::string& host);
     ConnectedBot(ConnectedBot&& other);
     bool processEvent(const mssm::Event& event);
-    bool isDead() { return connection.wasDisconnected(); }
+    bool isDead() { return connection.wasDisconnected() || bot.isDead(); }
 };
 
 
