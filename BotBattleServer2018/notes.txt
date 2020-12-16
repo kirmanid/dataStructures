@@ -1,0 +1,124 @@
+
+Improvements:
+
+Fixed radians per pixel when scanning (reduce bandwidth for small scans)
+
+Constant time overhead for "micro" moves/scans/turns  -   rationale: penalize bandwidth hogging
+
+"Energy system"  - penalize sitting around/camping
+
+Boot idle bots?
+
+Support dynamic renaming OR additional status data (for debugging)
+
+
+Food pills (visible?)
+
+
+TurnComplete
+MoveComplete
+ScanComplete
+FireComplete
+NoBullets
+HitWall
+HitBot
+
+HitByBot  (may ignore) not blocking (from behind?))
+ShotByBot (may ignore)
+GotFood   (may ignore never blocks, always occurs during move)
+
+
+Enforce minimum time commands (min turn, min scan.  Allow the turn/move/scan, but use a fixed amount of time)
+BOOT bots giving invalid commands (with good error message)
+Cap maximum number of remote bots
+Think about ignore command
+
+maybe have any command take at minimum 1/5th second.  Smaller move/turn/scans will just be "slowed down" to take that long
+
+
+
+Bot and Bullet positions:  They (currently) have no time associated with them, and therefore are assumed to be relevant at the 'current' time
+This is why advanceGameTime must be called before the position is used
+
+
+
+updateBotEvents
+receiveNewCommand
+setCurrentCommand
+
+
+
+Events Added by:
+
+updateBotEvents
+    introduceNewBots
+        World::update
+    setCurrentCommand
+        gotStopped
+            botHitWallEvt
+                BotHitWallEvt::execute
+                    WorldEventQueue::executeNextEvent
+                        World::update
+            botHitBotEvt
+                BotHitBotEvt::execute
+                    WorldEventQueue::executeNextEvent
+                        World::update
+        receiveNewCommand
+            botHitWallEvt
+                BotHitWallEvt::execute
+                    WorldEventQueue::executeNextEvent
+                        World::update
+            botCmdFinishedEvt
+                BotCmdFinishedEvt::execute
+                    WorldEventQueue::executeNextEvent
+                        World::update
+            botCommWaitEvt
+                BotCommWaitEvt::execute
+                    WorldEventQueue::executeNextEvent
+                        World::update
+            bulletHitBotEvt
+                BulletHitBotEvt::execute
+                    WorldEventQueue::executeNextEvent
+                        World::update
+            botHitBotEvt
+                BotHitBotEvt::execute
+                    WorldEventQueue::executeNextEvent
+                        World::update
+
+updateBulletEvents -
+    world::fire -
+        bot::execFire -
+            BotCmdFire::finish
+                finishCommand
+                    botCmdFinishedEvt
+                        BotCmdFinishedEvt::execute
+                            WorldEventQueue::executeNextEvent
+                                World::update
+
+removed by:
+
+deleteBullet
+    bulletHitWallEvt
+        BulletHitWallEvt::execute
+            WorldEventQueue::executeNextEvent
+                World::update
+    bulletHitBotEvt
+        BulletHitBotEvt::execute
+            WorldEventQueue::executeNextEvent
+                World::update
+
+queueForDelete
+    flushDeadBots
+        World::update
+
+killBot
+    updateNonEvent
+        WorldEventQueue::executeNextEvent
+            World::update
+    bulletHitBotEvt
+        BulletHitBotEvt::execute
+            WorldEventQueue::executeNextEvent
+                World::update
+
+WorldEventQueue::executeNextEvent
+    World::update

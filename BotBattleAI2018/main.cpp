@@ -26,7 +26,7 @@ public:
     void adoptParams(rnn& other);
     void zeroParams();
     void zeroState();
-    void saveParams(std::string filename);
+    void writeParams(std::string filename);
     void readParams(std::string filename);
     VectorXf state;
     MatrixXf forgetWeights;
@@ -69,7 +69,7 @@ void rnn::readMat (M& mat, std::istream& stream){
     }
 }
 
-void rnn::saveParams(std::string filename){
+void rnn::writeParams(std::string filename){
     std::ofstream file(filename);
     if (file.is_open()){
         saveMat(forgetWeights, file);
@@ -225,8 +225,8 @@ void rnn::mutateParams(float searchRadius){
 
 class MyBotAI : public BotAI
 {
-    bool firstEvent;
 public:
+    bool firstEvent;
     double lifespan;
     double& lastEventTime;
     double& birthdate;
@@ -258,7 +258,8 @@ BotCmd MyBotAI::handleEvents(mssm::Graphics& g, BotEvent& event)
     }
 
     if (lastEventTime - birthdate > lifespan){
-        return Resign();
+//        return Resign();
+        return MoveForward(1);
     }
 
     cout<< event.eventTime << endl;
@@ -324,7 +325,7 @@ BotCmd MyBotAI::handleEvents(mssm::Graphics& g, BotEvent& event)
             pAction = actions[i];
         }
     }
-    double time = pow(2, actions[5] * 1e3);
+    double time = pow(2, actions[5]  * 1e3 );
 
     switch(action){
         case 0:
@@ -361,18 +362,19 @@ void botBrainLoop(Graphics& g)
 
     double currentTime;
     double challengerBirthday;
-    rnn champ{64,15};
+    rnn champ{24,15};
     champ.mutateParams(.001);
-    rnn challenger{64,15};
+    rnn challenger{24,15};
     size_t hits = 0;
     size_t challengerFitness = 0;
     size_t champFitness = 0;
     double lifespan = 40;
     size_t generation = 0;
+    std::ofstream log("log");
 
+//    champ.readParams("params");
     botManager.addBot(std::make_unique<MyBotAI>(challenger, challengerBirthday, currentTime, hits, lifespan));
 
-    std::ofstream log("log");
 
     while (g.draw())
     {
@@ -391,6 +393,7 @@ void botBrainLoop(Graphics& g)
 
                 if (generation % 20 == 0){
                     log << generation << ", " << challengerFitness << ", " << champFitness << std::endl;
+                    champ.writeParams("params");
                 }
 
                 cout << "\n\n\n\n Fitness: "<< challengerFitness << endl;
@@ -403,7 +406,7 @@ void botBrainLoop(Graphics& g)
                 } else {
                     challenger.adoptParams(champ);
                 }
-                challenger.mutateParams(0.0008);
+                challenger.mutateParams(0.01);
 
                 hits = 0;
                 botManager.addBot(std::make_unique<MyBotAI>(challenger, challengerBirthday, currentTime, hits, lifespan));
@@ -464,6 +467,5 @@ void graphicsMain(Graphics& g)
 
 int main()
 {
-    srand(0);
     Graphics g("Bot Battle Client", 1000, 800, graphicsMain);
 }

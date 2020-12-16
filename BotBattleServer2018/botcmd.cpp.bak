@@ -1,0 +1,229 @@
+#include "botcmd.h"
+
+using namespace std;
+
+void BotCmd::write(ostream &strm)
+{
+    switch (cmd)
+    {
+    case BotCmdType::Fire:
+        strm << "Fire\n";
+        break;
+    case BotCmdType::Scan:
+        strm << "Scan " << arg1 << "\n";
+        break;
+    case BotCmdType::Turn:
+        strm << "Turn " << arg1 << "\n";
+        break;
+    case BotCmdType::Move:
+        strm << "Move " << arg1 << " " << arg2 << "\n";
+        break;
+    case BotCmdType::Ignore:
+        strm << "Ignore\n";
+        break;
+    }
+}
+
+int scanCharToBotId(char c) {
+    switch (c) {
+    case '_':
+        return 0;
+    case '-':
+        return -1;
+    case '+':
+        return 99;
+    }
+
+    if (c > '0' && c <= '9') {
+        return c - '0';   // 0-9 map to '0' to '9'
+    }
+
+    if (c >= 'a' && c <= 'z') {
+        return c - 'a' + 10; // 10-35 map to 'a' to 'z'
+    }
+
+    if (c >= 'A' && c <= 'Z') {
+        return c - 'A' + 36; // 36-61 map to 'A' to 'Z'
+    }
+
+    cout << "Unrecognized scan char!" << endl;
+
+    return 100;
+}
+
+std::vector<int> readScanVector(std::istream& strm)
+{
+    std::vector<int> view;
+
+    int sz;
+
+    strm >> sz;
+
+    view.resize(sz, 0);
+
+    for (int i=0;i<sz;i++)
+    {
+        char c;
+        strm >> c;
+        view[i] = scanCharToBotId(c);
+    }
+
+    return view;
+}
+
+char botIdToScanChar(int id) {
+    if (id < 0) {
+        return '-';       // all negative numbers map to -
+    }
+    if (id >= 0 && id <= 9) {
+        return '0' + id;  // 0-9 map to '0' to '9'
+    }
+    id -= 10;
+    if (id < 26) {
+        return 'a' + id;  // 10-35 map to 'a' to 'z'
+    }
+    id -= 26;
+    if (id < 26) {
+        return 'A' + id;  // 36-61 map to 'A' to 'Z'
+    }
+    return '+';           // > 61  map to +
+}
+
+void writeScanVector(const vector<int>& view, std::ostream& strm)
+{
+    strm << (int)view.size() << " ";
+    for (size_t i=0;i<view.size();i++)
+    {
+        if (view[i] == 0)
+        {
+            strm << "_";
+        }
+        else
+        {
+            strm << botIdToScanChar(view[i]);
+        }
+    }
+}
+
+BotEvent::BotEvent(BotEventType eventType, double eventTime) :
+    eventType{eventType},
+    eventTime{eventTime},
+    collisionAngle{0.0},
+    travelDistance{0.0},
+    angleTurned{0.0}
+{
+}
+
+void BotEvent::write(std::ostream& strm)
+{
+    switch (eventType)
+    {
+    case BotEventType::TurnComplete:
+        strm << "Turned ";
+        strm << eventTime << " " << angleTurned;
+        break;
+    case BotEventType::MoveComplete:
+        strm << "Moved ";
+        strm << eventTime << " " << travelDistance;
+        break;
+    case BotEventType::FireComplete:
+        strm << "Fired ";
+        strm << eventTime;
+        break;
+    case BotEventType::MoveBlockedByWall:
+        strm << "HitWall ";
+        strm << eventTime << " " << collisionAngle << " " << travelDistance;
+        break;
+    case BotEventType::MoveBlockedByBot:
+        strm << "HitBot ";
+        strm << eventTime << " " << collisionAngle << " " << travelDistance;
+        break;
+    case BotEventType::ScanComplete:
+        strm << "Scanned ";
+        strm << eventTime;
+        strm << " ";
+        writeScanVector(scanData, strm);
+        break;
+    case BotEventType::HitByBot:
+        strm << "HitByBot ";
+        strm << eventTime << " " << collisionAngle << " " << travelDistance << " " << angleTurned;
+        break;
+    case BotEventType::HitByBullet:
+        strm << "Shot ";
+        strm << eventTime << " " << collisionAngle << " " << travelDistance << " " << angleTurned;
+        break;
+    case BotEventType::PowerUp:
+        strm << "Food ";
+        strm << eventTime << " " << travelDistance;
+        break;
+    }
+
+    strm << "\r\n";
+}
+
+BotEvent BotEvent::read(std::istream& strm)
+{
+    std::string et;
+    double eventTime;
+
+    strm >> et;
+    strm >> eventTime;
+
+    BotEventType evtType;
+
+    if (et == "Turned")       { evtType = BotEventType::TurnComplete; }
+    else if (et == "Moved")   { evtType = BotEventType::MoveComplete; }
+    else if (et == "Fired")   { evtType = BotEventType::FireComplete; }
+    else if (et == "HitWall") { evtType = BotEventType::MoveBlockedByWall; }
+    else if (et == "Scanned") { evtType = BotEventType::ScanComplete; }
+    else if (et == "HitBot")  { evtType = BotEventType::MoveBlockedByBot; }
+    else if (et == "HitByBot"){ evtType = BotEventType::HitByBot; }
+    else if (et == "Shot")    { evtType = BotEventType::HitByBullet; }
+    else if (et == "Food")    { evtType = BotEventType::PowerUp; }
+    else {
+        // invalid bot event received... what should we do about that?
+        cout << "ERROR: Unable to parse event: " << et << endl;
+        return BotEvent{BotEventType::PowerUp, -1};
+    }
+
+    BotEvent evt{evtType, eventTime};
+
+    switch (evt.eventType)
+    {
+    case BotEventType::TurnComplete:
+        strm >> evt.angleTurned;
+        break;
+    case BotEventType::FireComplete:
+        // nothing else to read
+        break;
+    case BotEventType::MoveComplete:
+        strm >> evt.travelDistance;
+        break;
+    case BotEventType::MoveBlockedByBot:
+    case BotEventType::MoveBlockedByWall:
+        strm >> evt.collisionAngle;
+        strm >> evt.travelDistance;
+        break;
+    case BotEventType::ScanComplete:
+        evt.scanData = readScanVector(strm);
+        break;
+    case BotEventType::HitByBot:
+    case BotEventType::HitByBullet:
+        strm >> evt.collisionAngle;
+        strm >> evt.travelDistance;
+        strm >> evt.angleTurned;
+        break;
+    case BotEventType::PowerUp:
+        strm >> evt.travelDistance;
+        break;
+    }
+
+    return evt;
+}
+
+
+
+
+
+
+
